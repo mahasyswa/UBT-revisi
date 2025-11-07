@@ -505,6 +505,98 @@ tr:hover {
   background: white;
 }
 
+/* Status Breakdown Styles */
+.status-breakdown {
+    min-width: 200px;
+    padding: 8px;
+}
+
+.status-bars {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.status-bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+}
+
+.bar-label {
+    width: 70px;
+    color: #64748b;
+    font-weight: 500;
+}
+
+.bar-container {
+    flex: 1;
+    height: 20px;
+    background: #f1f5f9;
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.bar {
+    height: 100%;
+    color: white;
+    display: flex;
+    align-items: center;
+    padding: 0 8px;
+    font-size: 11px;
+    font-weight: 500;
+    transition: width 0.3s ease;
+}
+
+.bar.created {
+    background: #3b82f6;
+}
+
+.bar.delivered {
+    background: #10b981;
+}
+
+.bar.used {
+    background: #6366f1;
+}
+
+/* Type Badges */
+.type-badge {
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.type-rumahsakit {
+    background: #fee2e2;
+    color: #dc2626;
+}
+
+.type-puskesmas {
+    background: #ddd6fe;
+    color: #7c3aed;
+}
+
+/* Mobile Responsive */
+@media (max-width: 768px) {
+    .status-breakdown {
+        min-width: 150px;
+    }
+
+    .bar-label {
+        width: 60px;
+        font-size: 11px;
+    }
+
+    .bar {
+        padding: 0 4px;
+        font-size: 10px;
+    }
+}
+
 /* Status badges */
 .status-badge {
   padding: 4px 12px;

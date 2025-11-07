@@ -10,6 +10,7 @@ const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const validator = require('validator');
 const rateLimit = require('express-rate-limit');
+const dashboardRoutes = require('./routes/dashboard');
 
 // Add socket.io for real-time updates
 const { Server } = require('socket.io');
@@ -23,7 +24,6 @@ const io = new Server(server);
 app.set('trust proxy', 1);
 
 // Default to 3000 so URLs like http://localhost:3000 work out of the box
-const PORT = process.env.PORT || 8080;
 const JWT_SECRET = process.env.JWT_SECRET || 'your-super-secret-jwt-key-change-in-production';
 
 // Timezone Helper Functions for WIB (GMT+7)
@@ -166,6 +166,10 @@ app.use((req, res, next) => {
   
   next();
 });
+
+// Routes
+app.use('/', dashboardRoutes); // Dashboard routes
+
 
 // Authentication middleware
 function requireAuth(req, res, next) {
@@ -1416,32 +1420,38 @@ app.post('/api/confirm-usage/:code', requireAuth, (req, res) => {
 
 // Socket.io for real-time updates
 io.on('connection', (socket) => {
-  console.log('Client connected for real-time updates');
-  
-  socket.on('disconnect', () => {
-    console.log('Client disconnected');
-  });
+    console.log('Client connected for real-time updates');
+    
+    socket.on('disconnect', () => {
+        console.log('Client disconnected');
+    });
 });
-
-// Optional: redirect agar tautan /dashboard tidak 404
-app.get('/dashboard', (req, res) => res.redirect('/'));
 
 // Start server (using existing server instance)
 // Listen on 0.0.0.0 to bind to all network interfaces
+const PORT = process.env.PORT || 8080;
+
 server.listen(PORT, '0.0.0.0', () => {
-  console.log(`Server listening on http://localhost:${PORT}`);
-  console.log(`Server also available on http://127.0.0.1:${PORT}`);
-  console.log(`Process ID: ${process.pid}`);
-  console.log(`Access the app at: http://localhost:${PORT}`);
+    console.log(`Server listening on http://localhost:${PORT}`);
+    console.log(`Server also available on http://127.0.0.1:${PORT}`);
+    console.log(`Process ID: ${process.pid}`);
+    console.log(`Server started at: ${new Date().toISOString()}`);
 });
 
+// Error handling for server
 server.on('error', (err) => {
-  console.error('Server error:', err);
-  if (err.code === 'EADDRINUSE') {
-    console.error(`Port ${PORT} is already in use`);
-    process.exit(1);
-  }
+    console.error('Server error:', err);
+    if (err.code === 'EADDRINUSE') {
+        console.error(`Port ${PORT} is already in use`);
+        process.exit(1);
+    }
 });
 
-// Optional: redirect agar tautan /dashboard tidak 404
-app.get('/dashboard', (req, res) => res.redirect('/'));
+// Graceful shutdown
+process.on('SIGTERM', () => {
+    console.log('SIGTERM received. Shutting down gracefully...');
+    server.close(() => {
+        console.log('Server closed');
+        process.exit(0);
+    });
+});

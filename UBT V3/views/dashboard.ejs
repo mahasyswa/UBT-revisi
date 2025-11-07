@@ -720,59 +720,39 @@
         </div>
 
         <!-- Partner Performance Table -->
-        <div class="analytics-section">
-          <h3>🏆 Partner Performance & Stock</h3>
-          <div class="partner-performance-table">
-            <table class="performance-table">
-              <thead>
+<div class="table-container">
+    <table class="performance-table">
+        <thead>
+            <tr>
+                <th>PARTNER</th>
+                <th>TYPE</th>
+                <th>PROVINCE</th>
+                <th>TOTAL</th>
+                <th>STATUS BREAKDOWN</th>
+                <th>USED</th>
+                <th>USAGE RATE</th>
+                <th>LAST ACTIVITY</th>
+            </tr>
+        </thead>
+        <tbody>
+            <% if (partners && partners.length > 0) { %>
+                <% partners.forEach(function(partner) { %>
+                    <tr>
+                        <td>
+                            <strong><%= partner.name %></strong>
+                            <small class="partner-id"><%= partner.id %></small>
+                        </td>
+                        <!-- ... kode lainnya ... -->
+                    </tr>
+                <% }); %>
+            <% } else { %>
                 <tr>
-                  <th>Partner</th>
-                  <th>Type</th>
-                  <th>Province</th>
-                  <th>Total</th>
-                  <th>Used</th>
-                  <th>Usage Rate</th>
-                  <th>Last Activity</th>
+                    <td colspan="8" class="text-center">No partners found</td>
                 </tr>
-              </thead>
-              <tbody>
-                <% analytics.partnerPerformance.forEach(function(partner){ %>
-                <tr>
-                  <td>
-                    <strong><%= partner.partner_name %></strong>
-                    <br><code><%= partner.partner_code %></code>
-                  </td>
-                  <td>
-                    <span class="type-badge type-<%= partner.partner_type %>">
-                      <%= partner.partner_type.replace('_', ' ').toUpperCase() %>
-                    </span>
-                  </td>
-                  <td><%= partner.province_code %></td>
-                  <td><strong><%= partner.total_protocols %></strong></td>
-                  <td><%= partner.used_protocols %></td>
-                  <td>
-                    <div class="usage-indicator">
-                      <div class="usage-bar">
-                        <div class="usage-fill <%= partner.usage_rate >= 75 ? 'high' : partner.usage_rate >= 50 ? 'medium' : 'low' %>" 
-                             style="width: <%= partner.usage_rate %>%"></div>
-                      </div>
-                      <span><%= partner.usage_rate %>%</span>
-                    </div>
-                  </td>
-                  <td>
-                    <small><%= partner.last_activity ? new Date(partner.last_activity).toLocaleDateString('id-ID') : 'Never' %></small>
-                  </td>
-                </tr>
-                <% }) %>
-                <% if (analytics.partnerPerformance.length === 0) { %>
-                <tr>
-                  <td colspan="7" class="no-data">No partner performance data available</td>
-                </tr>
-                <% } %>
-              </tbody>
-            </table>
-          </div>
-        </div>
+            <% } %>
+        </tbody>
+    </table>
+</div>
 
         <!-- Interactive Charts -->
         <div class="analytics-charts">
