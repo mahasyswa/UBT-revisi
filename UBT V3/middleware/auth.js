@@ -3,6 +3,8 @@ const jwt = require('jsonwebtoken');
 // Authentication middleware
 const requireAuth = (req, res, next) => {
     if (!req.session || !req.session.userId) {
+        // Simpan intended URL
+        req.session.returnTo = req.originalUrl;
         return res.redirect('/login');
     }
     next();

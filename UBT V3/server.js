@@ -168,7 +168,8 @@ app.use((req, res, next) => {
 });
 
 // Routes
-app.use('/', dashboardRoutes); // Dashboard routes
+app.use('/dashboard', dashboardRoutes);
+app.get('/', (req, res) => res.redirect('/dashboard'));
 
 
 // Authentication middleware
