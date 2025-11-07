@@ -1,0 +1,10 @@
+<!-- 384x384 icon -->
+<svg width="384" height="384" viewBox="0 0 384 384" xmlns="http://www.w3.org/2000/svg">
+  <rect width="384" height="384" fill="#106EBE"/>
+  <rect x="64" y="64" width="256" height="256" fill="white" rx="24"/>
+  <rect x="96" y="96" width="32" height="192" fill="#106EBE"/>
+  <rect x="144" y="96" width="32" height="192" fill="#106EBE"/>
+  <rect x="192" y="96" width="32" height="192" fill="#106EBE"/>
+  <rect x="240" y="96" width="32" height="192" fill="#106EBE"/>
+  <text x="192" y="352" text-anchor="middle" fill="white" font-family="Arial" font-size="32">BCP</text>
+</svg>

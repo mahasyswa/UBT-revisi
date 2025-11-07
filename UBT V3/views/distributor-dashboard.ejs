@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Distributor Dashboard</title>
+    <link rel="stylesheet" href="/distributors.css">
+    <link rel="stylesheet" href="/mobile-responsive.css">
+</head>
+<body>
+    <div class="app-container">
+        <header class="app-header">
+            <div class="user-info">
+                <span>👤 <%= user.full_name %></span>
+                <small class="role-badge">Distributor</small>
+            </div>
+            <nav class="header-nav">
+                <a href="/scanner" class="nav-link">📱 Scanner</a>
+                <a href="/logout" class="nav-link">🚪 Keluar</a>
+            </nav>
+        </header>
+
+        <main class="distributor-dashboard">
+            <section class="scan-section">
+                <h2>Scanner Barcode</h2>
+                <div class="camera-container" id="cameraContainer">
+                    <!-- Camera feed will be inserted here -->
+                </div>
+                <button class="action-button" id="startScan">
+                    Mulai Scan
+                </button>
+            </section>
+
+            <section class="partner-stats">
+                <h2>Status Pengiriman Hari Ini</h2>
+                <div class="delivery-stats">
+                    <div class="delivery-status">
+                        <span class="status-indicator status-pending"></span>
+                        <div class="status-details">
+                            <strong>Menunggu Pickup</strong>
+                            <span id="pendingCount">0</span>
+                        </div>
+                    </div>
+                    <div class="delivery-status">
+                        <span class="status-indicator status-inprocess"></span>
+                        <div class="status-details">
+                            <strong>Dalam Pengiriman</strong>
+                            <span id="inProcessCount">0</span>
+                        </div>
+                    </div>
+                    <div class="delivery-status">
+                        <span class="status-indicator status-delivered"></span>
+                        <div class="status-details">
+                            <strong>Terkirim</strong>
+                            <span id="deliveredCount">0</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script src="https://unpkg.com/html5-qrcode"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            let html5QrcodeScanner = null;
+
+            document.getElementById('startScan').addEventListener('click', function() {
+                if (html5QrcodeScanner === null) {
+                    html5QrcodeScanner = new Html5QrcodeScanner(
+                        "cameraContainer", 
+                        { 
+                            fps: 10,
+                            qrbox: { width: 250, height: 250 },
+                            aspectRatio: 4/3
+                        }
+                    );
+                    
+                    html5QrcodeScanner.render((decodedText, decodedResult) => {
+                        // Handle success scanning
+                        handleScanSuccess(decodedText);
+                    });
+                    
+                    this.textContent = 'Stop Scan';
+                } else {
+                    html5QrcodeScanner.clear();
+                    html5QrcodeScanner = null;
+                    this.textContent = 'Mulai Scan';
+                }
+            });
+
+            function handleScanSuccess(decodedText) {
+                // Send scan result to server
+                fetch('/api/scan-protocol', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        protocol_id: decodedText,
+                        timestamp: new Date().toISOString()
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    updateDeliveryStats();
+                    // Show success notification
+                    showNotification('Scan berhasil: ' + data.message);
+                })
+                .catch(error => {
+                    showNotification('Error: ' + error.message, 'error');
+                });
+            }
+
+            function updateDeliveryStats() {
+                fetch('/api/distributor/daily-stats')
+                    .then(response => response.json())
+                    .then(stats => {
+                        document.getElementById('pendingCount').textContent = stats.pending;
+                        document.getElementById('inProcessCount').textContent = stats.inProcess;
+                        document.getElementById('deliveredCount').textContent = stats.delivered;
+                    });
+            }
+
+            function showNotification(message, type = 'success') {
+                // Implementation of toast notification
+                const toast = document.createElement('div');
+                toast.className = `toast toast-${type}`;
+                toast.textContent = message;
+                document.body.appendChild(toast);
+                setTimeout(() => toast.remove(), 3000);
+            }
+
+            // Initial stats load
+            updateDeliveryStats();
+        });
+    </script>
+</body>
+</html>

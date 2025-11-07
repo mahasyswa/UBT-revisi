@@ -1,0 +1,1292 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes, viewport-fit=cover" />
+    <title>Dashboard - Barcode Protocol</title>
+    
+    <!-- PWA Meta Tags -->
+    <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#106EBE">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="Barcode Protocol">
+    <link rel="apple-touch-icon" href="/icons/icon-152x152.svg">
+    
+    <link rel="stylesheet" href="/styles.css" />
+    <link rel="stylesheet" href="/mobile-responsive.css" />
+    <link rel="stylesheet" href="/toast.css" />
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+      .form-row {
+        display: flex;
+        gap: 20px;
+        margin-bottom: 15px;
+      }
+      
+      .form-group {
+        flex: 1;
+      }
+      
+      .form-group label {
+        display: block;
+        margin-bottom: 5px;
+        font-weight: bold;
+        color: #333;
+      }
+      
+      .form-group select,
+      .form-group input,
+      .form-group textarea {
+        width: 100%;
+        padding: 10px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        font-size: 14px;
+      }
+      
+      .new-partner-form {
+        background: #f8f9fa;
+        padding: 20px;
+        border-radius: 8px;
+        margin-top: 15px;
+        border: 2px solid #dee2e6;
+      }
+      
+      .new-partner-form h3 {
+        margin-top: 0;
+        color: #495057;
+      }
+      
+      .form-actions {
+        display: flex;
+        gap: 10px;
+        justify-content: flex-end;
+        margin-top: 15px;
+      }
+      
+      .btn-secondary {
+        background: #6c757d;
+        color: white;
+        padding: 8px 16px;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 14px;
+      }
+      
+      .btn-secondary:hover {
+        background: #545b62;
+      }
+      
+      .btn-primary {
+        background: #007bff;
+        color: white;
+        padding: 8px 16px;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 14px;
+      }
+      
+      .btn-primary:hover {
+        background: #0056b3;
+      }
+      
+      #createProtocolBtn {
+        background: #28a745;
+        color: white;
+        padding: 12px 24px;
+        border: none;
+        border-radius: 6px;
+        font-size: 16px;
+        font-weight: bold;
+        cursor: pointer;
+        margin-top: 20px;
+        width: 100%;
+      }
+      
+      #createProtocolBtn:hover:not(:disabled) {
+        background: #218838;
+      }
+      
+      #createProtocolBtn:disabled {
+        background: #6c757d;
+        cursor: not-allowed;
+      }
+      
+      .partner-info {
+        font-size: 12px;
+      }
+      
+      .partner-info strong {
+        color: #333;
+        font-size: 13px;
+      }
+      
+      .partner-type {
+        display: inline-block;
+        padding: 2px 6px;
+        border-radius: 8px;
+        font-size: 10px;
+        font-weight: bold;
+        margin-top: 2px;
+      }
+      
+      .type-klinik {
+        background: #e3f2fd;
+        color: #1976d2;
+      }
+      
+      .type-puskesmas {
+        background: #f3e5f5;
+        color: #7b1fa2;
+      }
+      
+      .type-rumah_sakit {
+        background: #e8f5e8;
+        color: #388e3c;
+      }
+      
+      .partner-code {
+        background: #f8f9fa;
+        color: #495057;
+        padding: 1px 4px;
+        border-radius: 3px;
+        font-size: 10px;
+        margin-top: 2px;
+        display: inline-block;
+      }
+      
+      .no-partner {
+        color: #6c757d;
+        font-style: italic;
+        font-size: 12px;
+      }
+      
+      .stock-summary {
+        display: flex;
+        gap: 15px;
+        margin-bottom: 25px;
+        flex-wrap: wrap;
+      }
+      
+      .stock-card {
+        flex: 1;
+        min-width: 200px;
+        background: linear-gradient(135deg, #106EBE 0%, #0d4f88 100%);
+        color: white;
+        padding: 20px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        text-shadow: 0 1px 2px rgba(0,0,0,0.35);
+      }
+      
+      .stock-icon {
+        font-size: 32px;
+        opacity: 0.9;
+      }
+      
+      .stock-content {
+        flex: 1;
+      }
+      
+      .stock-number {
+        font-size: 28px;
+        font-weight: bold;
+        margin-bottom: 5px;
+        color: #ffffff;
+      }
+      
+      .stock-label {
+        font-size: 14px;
+        color: rgba(255,255,255,0.9);
+      }
+      
+      .stock-details {
+        background: white;
+        border-radius: 12px;
+        padding: 20px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+      }
+      
+      .stock-details h3 {
+        margin-top: 0;
+        margin-bottom: 20px;
+        color: #333;
+      }
+      
+      .stock-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 14px;
+      }
+      
+      .stock-table th {
+        background: #f8f9fa;
+        padding: 12px;
+        text-align: left;
+        font-weight: bold;
+        border-bottom: 2px solid #e9ecef;
+        color: #495057;
+      }
+      
+      .stock-table td {
+        padding: 12px;
+        border-bottom: 1px solid #e9ecef;
+        vertical-align: middle;
+      }
+      
+      .stock-table tr:hover {
+        background: #f8f9fa;
+      }
+      
+      .usage-bar {
+        width: 100px;
+        height: 8px;
+        background: #e9ecef;
+        border-radius: 4px;
+        overflow: hidden;
+        position: relative;
+      }
+      
+      .usage-fill {
+        height: 100%;
+        border-radius: 4px;
+        transition: width 0.3s ease;
+      }
+      
+      .usage-fill.low {
+        background: #28a745;
+      }
+      
+      .usage-fill.medium {
+        background: #ffc107;
+      }
+      
+      .usage-fill.high {
+        background: #dc3545;
+      }
+      
+      .loading {
+        text-align: center;
+        color: #6c757d;
+        font-style: italic;
+        padding: 40px;
+      }
+      
+      .metrics-grid {
+        display: flex;
+        gap: 15px;
+        margin-bottom: 30px;
+        flex-wrap: wrap;
+      }
+      
+      .metric-card {
+        flex: 1;
+        min-width: 180px;
+        background: linear-gradient(135deg, #106EBE 0%, #0d4f88 100%);
+        color: white;
+        padding: 20px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        text-shadow: 0 1px 2px rgba(0,0,0,0.35);
+      }
+      
+      .metric-icon {
+        font-size: 32px;
+        opacity: 0.9;
+      }
+      
+      .metric-content {
+        flex: 1;
+      }
+      
+      .metric-number {
+        font-size: 28px;
+        font-weight: bold;
+        margin-bottom: 5px;
+        color: #ffffff;
+      }
+      
+      .metric-label {
+        font-size: 14px;
+        color: rgba(255,255,255,0.9);
+      }
+      
+      .analytics-section {
+        background: white;
+        border-radius: 12px;
+        padding: 25px;
+        margin-bottom: 30px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+      }
+      
+      .analytics-section h3 {
+        margin-top: 0;
+        margin-bottom: 20px;
+        color: #333;
+        font-size: 18px;
+      }
+      
+      .partner-performance-table {
+        overflow-x: auto;
+      }
+      
+      .performance-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 14px;
+      }
+      
+      .performance-table th {
+        background: #f8f9fa;
+        padding: 12px;
+        text-align: left;
+        font-weight: bold;
+        border-bottom: 2px solid #e9ecef;
+        color: #495057;
+      }
+      
+      .performance-table td {
+        padding: 12px;
+        border-bottom: 1px solid #e9ecef;
+        vertical-align: middle;
+      }
+      
+      .performance-table tr:hover {
+        background: #f8f9fa;
+      }
+      
+      .usage-indicator {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+      
+      .usage-indicator .usage-bar {
+        width: 80px;
+        height: 8px;
+        background: #e9ecef;
+        border-radius: 4px;
+        overflow: hidden;
+      }
+      
+      .usage-indicator .usage-fill {
+        height: 100%;
+        border-radius: 4px;
+        transition: width 0.3s ease;
+      }
+      
+      .usage-indicator span {
+        font-weight: bold;
+        font-size: 12px;
+        min-width: 40px;
+      }
+      
+      .analytics-charts {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+        gap: 20px;
+        margin-top: 20px;
+      }
+      
+      .chart-wrapper {
+        background: white;
+        border-radius: 12px;
+        padding: 20px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+      }
+      
+      .chart-wrapper h3 {
+        margin-top: 0;
+        margin-bottom: 15px;
+        color: #333;
+        font-size: 16px;
+      }
+      
+      @media (max-width: 768px) {
+        .form-row {
+          flex-direction: column;
+          gap: 10px;
+        }
+        
+        .form-actions {
+          flex-direction: column;
+        }
+        
+        .partner-info {
+          font-size: 11px;
+        }
+        
+        .partner-info strong {
+          font-size: 12px;
+        }
+        
+        .stock-summary {
+          flex-direction: column;
+        }
+        
+        .stock-card {
+          min-width: auto;
+        }
+        
+        .stock-table {
+          font-size: 12px;
+        }
+        
+        .stock-table th,
+        .stock-table td {
+          padding: 8px 4px;
+        }
+        
+        .usage-bar {
+          width: 60px;
+        }
+        
+        .metrics-grid {
+          flex-direction: column;
+        }
+        
+        .metric-card {
+          min-width: auto;
+        }
+        
+        .analytics-charts {
+          grid-template-columns: 1fr;
+        }
+        
+        .performance-table {
+          font-size: 12px;
+        }
+        
+        .performance-table th,
+        .performance-table td {
+          padding: 8px 4px;
+        }
+        
+        .usage-indicator .usage-bar {
+          width: 50px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <!-- Mobile Navigation Sidebar -->
+      <div class="mobile-nav-backdrop" id="mobileNavBackdrop"></div>
+      <div class="mobile-nav-overlay" id="mobileNav">
+        <div class="mobile-nav-content">
+          <div class="mobile-nav-user">
+            <strong><%= user.full_name || user %></strong>
+            <% if (user.role) { %><small><%= user.role %></small><% } %>
+          </div>
+          <nav class="navigation-links">
+            <a href="/dashboard">📊 Dashboard</a>
+            <a href="/partners">🏢 Partners</a>
+            <% if (user.role === 'admin') { %>
+              <a href="/users">👥 Users</a>
+            <% } %>
+            <a href="/scanner">📱 Scanner</a>
+            <a href="/logout" style="color: #e53e3e; font-weight: 600;">🚪 Logout</a>
+          </nav>
+        </div>
+      </div>
+
+      <header>
+        <button class="mobile-menu-toggle" id="mobileMenuToggle" aria-label="Toggle Menu">
+          <span></span>
+          <span></span>
+          <span></span>
+        </button>
+        <h1>Barcode Protocol Dashboard</h1>
+        <div class="user">
+          Logged in as <strong><%= user.full_name || user %></strong> 
+          <% if (user.role) { %>(<%= user.role %>)<% } %> — 
+          <a href="/partners">Partners</a> |
+          <% if (user.role === 'admin') { %>
+            <a href="/users">Users</a> | 
+          <% } %>
+          <a href="/logout">Logout</a>
+        </div>
+      </header>
+
+      <section>
+        <h2>Create Protocol</h2>
+        <form method="post" action="/protocols" id="protocolForm">
+          <div class="form-row">
+            <div class="form-group">
+              <label for="province">Province</label>
+              <select name="province" id="provinceSelect" required>
+                <option value="">Select Province</option>
+                <% provinces.forEach(function(p){ %>
+                <option value="<%= p.code %>"><%= p.name %> (<%= p.code %>)</option>
+                <% }) %>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="partner">Mitra</label>
+              <select name="partner_id" id="partnerSelect" required disabled>
+                <option value="">Select Province First</option>
+              </select>
+            </div>
+          </div>
+          
+          <div class="form-row">
+            <div class="form-group">
+              <label for="quantity">Quantity</label>
+              <input type="number" name="quantity" id="quantityInput" min="1" max="100" value="1" required>
+              <small style="color: #666; font-size: 12px;">Number of QR codes to generate (1-100)</small>
+            </div>
+          </div>
+          
+          <div class="form-group" id="addPartnerSection" style="display: none;">
+            <button type="button" id="addPartnerBtn" class="btn-secondary">
+              + Add New Partner for Selected Province
+            </button>
+          </div>
+          
+          <div id="newPartnerForm" style="display: none;" class="new-partner-form">
+            <h3>Add New Partner</h3>
+            <div class="form-row">
+              <div class="form-group">
+                <label for="partner_name">Partner Name</label>
+                <input type="text" id="partner_name" name="partner_name" placeholder="Partner name">
+              </div>
+              <div class="form-group">
+                <label for="partner_type">Partner Type</label>
+                <select id="partner_type" name="partner_type">
+                  <option value="">Select Type</option>
+                  <option value="klinik">Klinik</option>
+                  <option value="puskesmas">Puskesmas</option>
+                  <option value="rumah_sakit">Rumah Sakit</option>
+                </select>
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label for="partner_code">Partner Code</label>
+                <input type="text" id="partner_code" name="partner_code" placeholder="e.g., KLN001" maxlength="10">
+              </div>
+              <div class="form-group">
+                <label for="partner_phone">Phone (Optional)</label>
+                <input type="tel" id="partner_phone" name="partner_phone" placeholder="Phone number">
+              </div>
+            </div>
+            <div class="form-group">
+              <label for="partner_address">Address (Optional)</label>
+              <textarea id="partner_address" name="partner_address" rows="2" placeholder="Address"></textarea>
+            </div>
+            <div class="form-actions">
+              <button type="button" id="cancelPartnerBtn" class="btn-secondary">Cancel</button>
+              <button type="button" id="savePartnerBtn" class="btn-primary">Save & Use Partner</button>
+            </div>
+          </div>
+          
+          <button type="submit" id="createProtocolBtn" disabled>Create Protocol & Generate QR Code</button>
+        </form>
+      </section>
+
+      <section>
+        <h2>Monitoring & Statistics</h2>
+        <div class="stats-controls">
+          <form method="get" action="/" class="filter-form">
+            <div class="filter-row">
+              <div class="filter-group">
+                <label>Filter Period</label>
+                <select name="period" id="periodSelect">
+                  <option value="today" <%= (req.query.period || 'today') === 'today' ? 'selected' : '' %>>Today</option>
+                  <option value="week" <%= req.query.period === 'week' ? 'selected' : '' %>>This Week</option>
+                  <option value="month" <%= req.query.period === 'month' ? 'selected' : '' %>>This Month</option>
+                  <option value="custom" <%= req.query.period === 'custom' ? 'selected' : '' %>>Custom Date Range</option>
+                </select>
+              </div>
+              <div class="filter-group custom-date-range" style="display: <%= req.query.period === 'custom' ? 'block' : 'none' %>;">
+                <label>From</label>
+                <input type="date" name="start_date" value="<%= req.query.start_date || '' %>" />
+                <label>To</label>
+                <input type="date" name="end_date" value="<%= req.query.end_date || '' %>" />
+              </div>
+              <div class="filter-group">
+                <button type="submit" class="btn-filter">Apply Filter</button>
+              </div>
+            </div>
+          </form>
+        </div>
+
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-number"><%= stats.total %></div>
+            <div class="stat-label">Total Protocols</div>
+          </div>
+          <div class="stat-card created">
+            <div class="stat-number"><%= stats.created %></div>
+            <div class="stat-label">Created</div>
+          </div>
+          <div class="stat-card delivered">
+            <div class="stat-number"><%= stats.delivered %></div>
+            <div class="stat-label">Delivered</div>
+          </div>
+          <div class="stat-card terpakai">
+            <div class="stat-number"><%= stats.terpakai %></div>
+            <div class="stat-label">Terpakai</div>
+          </div>
+        </div>
+
+        <div class="charts-row">
+          <div class="chart-container">
+            <h3>Status Distribution</h3>
+            <div class="pie-chart">
+              <div class="chart-legend">
+                <div class="legend-item">
+                  <span class="legend-color created"></span>
+                  <span>Created (<%= stats.created %>)</span>
+                </div>
+                <div class="legend-item">
+                  <span class="legend-color delivered"></span>
+                  <span>Delivered (<%= stats.delivered %>)</span>
+                </div>
+                <div class="legend-item">
+                  <span class="legend-color terpakai"></span>
+                  <span>Terpakai (<%= stats.terpakai %>)</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="chart-container">
+            <h3>Top 5 Provinces</h3>
+            <div class="bar-chart">
+              <% stats.topProvinces.forEach(function(prov, index){ %>
+              <div class="bar-item">
+                <span class="bar-label"><%= prov.province_code %></span>
+                <div class="bar-container">
+                  <div class="bar-fill" style="width: <%= (prov.count / Math.max(...stats.topProvinces.map(p => p.count))) * 100 %>%"></div>
+                  <span class="bar-value"><%= prov.count %></span>
+                </div>
+              </div>
+              <% }) %>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Live Stock & Analytics Section -->
+      <section>
+        <h2>📊 Live Stock & Analytics</h2>
+        
+        <!-- Performance Metrics -->
+        <div class="metrics-grid">
+          <div class="metric-card">
+            <div class="metric-icon">📊</div>
+            <div class="metric-content">
+              <div class="metric-number"><%= analytics.metrics.total_protocols || 0 %></div>
+              <div class="metric-label">Total Protocols</div>
+            </div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-icon">🌍</div>
+            <div class="metric-content">
+              <div class="metric-number"><%= analytics.metrics.unique_provinces || 0 %></div>
+              <div class="metric-label">Provinces Covered</div>
+            </div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-icon">🏢</div>
+            <div class="metric-content">
+              <div class="metric-number"><%= analytics.metrics.active_partners || 0 %></div>
+              <div class="metric-label">Active Partners</div>
+            </div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-icon">⚡</div>
+            <div class="metric-content">
+              <div class="metric-number"><%= analytics.metrics.avg_per_day || 0 %></div>
+              <div class="metric-label">Avg/Day</div>
+            </div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-icon">✅</div>
+            <div class="metric-content">
+              <div class="metric-number"><%= analytics.metrics.completion_rate || 0 %>%</div>
+              <div class="metric-label">Completion Rate</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Partner Performance Table -->
+        <div class="analytics-section">
+          <h3>🏆 Partner Performance & Stock</h3>
+          <div class="partner-performance-table">
+            <table class="performance-table">
+              <thead>
+                <tr>
+                  <th>Partner</th>
+                  <th>Type</th>
+                  <th>Province</th>
+                  <th>Total</th>
+                  <th>Used</th>
+                  <th>Usage Rate</th>
+                  <th>Last Activity</th>
+                </tr>
+              </thead>
+              <tbody>
+                <% analytics.partnerPerformance.forEach(function(partner){ %>
+                <tr>
+                  <td>
+                    <strong><%= partner.partner_name %></strong>
+                    <br><code><%= partner.partner_code %></code>
+                  </td>
+                  <td>
+                    <span class="type-badge type-<%= partner.partner_type %>">
+                      <%= partner.partner_type.replace('_', ' ').toUpperCase() %>
+                    </span>
+                  </td>
+                  <td><%= partner.province_code %></td>
+                  <td><strong><%= partner.total_protocols %></strong></td>
+                  <td><%= partner.used_protocols %></td>
+                  <td>
+                    <div class="usage-indicator">
+                      <div class="usage-bar">
+                        <div class="usage-fill <%= partner.usage_rate >= 75 ? 'high' : partner.usage_rate >= 50 ? 'medium' : 'low' %>" 
+                             style="width: <%= partner.usage_rate %>%"></div>
+                      </div>
+                      <span><%= partner.usage_rate %>%</span>
+                    </div>
+                  </td>
+                  <td>
+                    <small><%= partner.last_activity ? new Date(partner.last_activity).toLocaleDateString('id-ID') : 'Never' %></small>
+                  </td>
+                </tr>
+                <% }) %>
+                <% if (analytics.partnerPerformance.length === 0) { %>
+                <tr>
+                  <td colspan="7" class="no-data">No partner performance data available</td>
+                </tr>
+                <% } %>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Interactive Charts -->
+        <div class="analytics-charts">
+          <div class="chart-wrapper">
+            <h3>📈 Daily Trends (Last 30 Days)</h3>
+            <canvas id="dailyTrendsChart" width="400" height="200"></canvas>
+          </div>
+          
+          <div class="chart-wrapper">
+            <h3>🕒 Hourly Distribution (Last 7 Days)</h3>
+            <canvas id="hourlyChart" width="400" height="200"></canvas>
+          </div>
+          
+          <div class="chart-wrapper">
+            <h3>📊 Status Distribution</h3>
+            <canvas id="statusPieChart" width="400" height="200"></canvas>
+          </div>
+          
+          <div class="chart-wrapper">
+            <h3>🏛️ Province Performance</h3>
+            <canvas id="provinceChart" width="400" height="200"></canvas>
+          </div>
+        </div>
+      </section>
+
+      <section>
+        <h2>Protocols</h2>
+        <style>
+          /* Protocols table UI/UX improvements */
+          .protocols-wrapper { overflow:auto; -webkit-overflow-scrolling: touch; border: 1px solid #e5e7eb; border-radius: 8px; background:#fff; padding: 8px; }
+          .protocols-table { width:100%; border-collapse: collapse; min-width: 960px; table-layout: auto; }
+          .protocols-table th, .protocols-table td { padding:10px 12px; border-bottom:1px solid #f0f0f0; text-align:left; vertical-align: middle; overflow: visible; }
+          .protocols-table th { background:#f9fafb; color:#374151; font-weight: 600; position: sticky; top: 0; z-index: 1; }
+          .protocols-table .barcode-cell img { max-width: 220px; height:auto; display:block; }
+          .protocols-table .btn-download { margin-top:6px; }
+          .protocols-table .actions-cell { white-space: nowrap; overflow: visible; position: relative; display: flex; align-items: center; gap: 10px; padding-right: 8px; }
+          .protocols-table .actions-cell form { display:flex; gap:8px; align-items:center; }
+          .protocols-table .actions-cell select { padding:6px 8px; font-size:12px; min-width: 140px; }
+          .protocols-table .actions-cell button { padding:8px 12px; font-size:12px; line-height:1.2; background:#2563eb; color:#fff; border:none; border-radius:6px; cursor:pointer; }
+          .protocols-table .actions-cell button { white-space: nowrap; }
+          .protocols-table .actions-cell button:hover { background:#1d4ed8; }
+          .protocols-table .group-header td { background:#f3f4f6; font-weight:600; }
+          .protocols-table .status-badge { padding:2px 8px; border-radius:12px; font-size:12px; text-transform: capitalize; }
+          @media (max-width: 768px) {
+            .protocols-table { min-width: 800px; }
+            .protocols-table .barcode-cell img { max-width: 180px; }
+            .protocols-table .actions-cell select { min-width: 110px; }
+          }
+        </style>
+        <% 
+          // Group protocols by partner for segmented display
+          const grouped = {};
+          (protocols || []).forEach(p => {
+            const key = p.partner_id || 'NO_PARTNER';
+            if (!grouped[key]) {
+              grouped[key] = {
+                partner_name: p.partner_name || 'No Partner',
+                partner_code: p.partner_code || '',
+                partner_type: p.partner_type || '',
+                items: []
+              };
+            }
+            grouped[key].items.push(p);
+          });
+          const groups = Object.values(grouped);
+        %>
+        <% if (groups.length === 0) { %>
+          <div class="no-data">Belum ada protocol untuk periode ini.</div>
+        <% } else { %>
+          <div class="protocols-wrapper">
+          <table class="protocols-table">
+            <thead>
+              <tr>
+                <th style="width:80px;">ID</th>
+                <th style="min-width:220px;">Code</th>
+                <th style="width:120px;">Province</th>
+                <th style="min-width:180px;">Created</th>
+                <th style="width:120px;">Status</th>
+                <th style="min-width:260px;">QR Code</th>
+                <th style="min-width:280px;">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% groups.forEach(function(g){ %>
+                <tr class="group-header">
+                  <td colspan="7">
+                    <strong>Mitra:</strong> <%= g.partner_name %>
+                    <% if (g.partner_type) { %>
+                      <span class="partner-type type-<%= g.partner_type %>"><%= g.partner_type.replace('_',' ').toUpperCase() %></span>
+                    <% } %>
+                    <% if (g.partner_code) { %>
+                      <code class="partner-code" style="margin-left:8px;">(<%= g.partner_code %>)</code>
+                    <% } %>
+                  </td>
+                </tr>
+                <% g.items.forEach(function(p){ %>
+                  <tr>
+                    <td><%= p.id %></td>
+                    <td><strong><%= p.code %></strong></td>
+                    <td><%= p.province_code %></td>
+                    <td><%= new Date(p.created_at).toLocaleString('id-ID', { dateStyle: 'short', timeStyle: 'short' }) %></td>
+                    <td><span class="status-badge status-<%= p.status %>"><%= p.status.replace('_', ' ') %></span></td>
+                    <td class="barcode-cell">
+                      <img src="/barcode/<%= p.code %>.png" alt="QR Code" />
+                      <br>
+                      <a href="/download/barcode/<%= p.code %>.png" download="qrcode-<%= p.code %>.png" class="btn-download">Download QR</a>
+                    </td>
+                    <td class="actions-cell">
+                      <form method="post" action="/protocols/<%= p.id %>/status">
+                        <select name="status">
+                          <option value="created" <%= p.status === 'created' ? 'selected' : '' %>>created</option>
+                          <option value="delivered" <%= p.status === 'delivered' ? 'selected' : '' %>>delivered</option>
+                          <option value="terpakai" <%= p.status === 'terpakai' ? 'selected' : '' %>>terpakai</option>
+                        </select>
+                        <button type="submit">Update</button>
+                      </form>
+                      <!-- Removed public check link as requested -->
+                    </td>
+                  </tr>
+                <% }) %>
+              <% }) %>
+            </tbody>
+          </table>
+          </div>
+        <% } %>
+      </section>
+    </div>
+    
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="/toast.js"></script>
+    <script>
+      // Socket.io for real-time updates
+      const socket = io();
+      
+      socket.on('status_updated', function(data) {
+        // Show toast notification
+        showToast(`Protocol ${data.code} updated to ${data.newStatus}`, 'success');
+        
+        // Update the table row if visible
+        updateTableRow(data.protocol);
+        
+        // Refresh stats (simple page reload for now)
+        setTimeout(() => {
+          window.location.reload();
+        }, 1500);
+      });
+
+      // Unregister old Service Worker from Vercel
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.getRegistrations().then(function(registrations) {
+          for(let registration of registrations) {
+            registration.unregister().then(function(success) {
+              console.log('SW unregistered:', success);
+            });
+          }
+        });
+        // Clear all caches
+        caches.keys().then(function(names) {
+          for (let name of names) {
+            caches.delete(name);
+          }
+        });
+      }
+      
+      function updateTableRow(protocol) {
+        const rows = document.querySelectorAll('tbody tr');
+        rows.forEach(row => {
+          const codeCell = row.querySelector('td:nth-child(2)');
+          if (codeCell && codeCell.textContent.includes(protocol.code)) {
+            const statusCell = row.querySelector('td:nth-child(5)');
+            const statusBadge = statusCell.querySelector('.status-badge');
+            statusBadge.className = `status-badge status-${protocol.status}`;
+            statusBadge.textContent = protocol.status.replace('_', ' ');
+          }
+        });
+      }
+      
+      function showToast(message, type = 'info') {
+        // Create toast element if not exists
+        let toast = document.getElementById('dashboard-toast');
+        if (!toast) {
+          toast = document.createElement('div');
+          toast.id = 'dashboard-toast';
+          toast.className = 'dashboard-toast';
+          document.body.appendChild(toast);
+        }
+        
+        toast.textContent = message;
+        toast.className = `dashboard-toast dashboard-toast-${type} show`;
+        
+        setTimeout(() => {
+          toast.classList.remove('show');
+        }, 3000);
+      }
+
+      // Handle period selection change
+      document.getElementById('periodSelect').addEventListener('change', function() {
+        const customDateRange = document.querySelector('.custom-date-range');
+        if (this.value === 'custom') {
+          customDateRange.style.display = 'block';
+        } else {
+          customDateRange.style.display = 'none';
+        }
+      });
+
+      // Handle province selection for partner dropdown
+      document.getElementById('provinceSelect').addEventListener('change', function() {
+        const provinceCode = this.value;
+        const partnerSelect = document.getElementById('partnerSelect');
+        const addPartnerSection = document.getElementById('addPartnerSection');
+        const createBtn = document.getElementById('createProtocolBtn');
+        
+        if (!provinceCode) {
+          partnerSelect.disabled = true;
+          partnerSelect.innerHTML = '<option value="">Select Province First</option>';
+          addPartnerSection.style.display = 'none';
+          createBtn.disabled = true;
+          return;
+        }
+        
+        // Fetch partners for selected province
+        fetch(`/api/partners/${provinceCode}`)
+          .then(response => response.json())
+          .then(partners => {
+            partnerSelect.innerHTML = '<option value="">Select Partner</option>';
+            
+            partners.forEach(partner => {
+              const option = document.createElement('option');
+              option.value = partner.id;
+              option.textContent = `${partner.name} (${partner.code}) - ${partner.type.replace('_', ' ').toUpperCase()}`;
+              partnerSelect.appendChild(option);
+            });
+            
+            partnerSelect.disabled = false;
+            addPartnerSection.style.display = 'block';
+          })
+          .catch(error => {
+            console.error('Error fetching partners:', error);
+            partnerSelect.innerHTML = '<option value="">Error loading partners</option>';
+          });
+      });
+      
+      // Handle partner selection
+      document.getElementById('partnerSelect').addEventListener('change', function() {
+        const createBtn = document.getElementById('createProtocolBtn');
+        createBtn.disabled = !this.value;
+      });
+      
+      // Handle add new partner
+      document.getElementById('addPartnerBtn').addEventListener('click', function() {
+        const newPartnerForm = document.getElementById('newPartnerForm');
+        const provinceCode = document.getElementById('provinceSelect').value;
+        
+        // Auto-fill province code in hidden field
+        newPartnerForm.style.display = 'block';
+        this.style.display = 'none';
+      });
+      
+      // Handle cancel new partner
+      document.getElementById('cancelPartnerBtn').addEventListener('click', function() {
+        const newPartnerForm = document.getElementById('newPartnerForm');
+        const addPartnerBtn = document.getElementById('addPartnerBtn');
+        
+        newPartnerForm.style.display = 'none';
+        addPartnerBtn.style.display = 'block';
+        
+        // Clear form
+        document.getElementById('partner_name').value = '';
+        document.getElementById('partner_type').value = '';
+        document.getElementById('partner_code').value = '';
+        document.getElementById('partner_phone').value = '';
+        document.getElementById('partner_address').value = '';
+      });
+      
+      // Handle save new partner
+      document.getElementById('savePartnerBtn').addEventListener('click', function() {
+        const provinceCode = document.getElementById('provinceSelect').value;
+        const partnerData = {
+          name: document.getElementById('partner_name').value,
+          type: document.getElementById('partner_type').value,
+          code: document.getElementById('partner_code').value,
+          province_code: provinceCode,
+          phone: document.getElementById('partner_phone').value,
+          address: document.getElementById('partner_address').value
+        };
+        
+        // Validate required fields
+        if (!partnerData.name || !partnerData.type || !partnerData.code) {
+          alert('Please fill in all required fields (Name, Type, Code)');
+          return;
+        }
+        
+        // Send to server
+        fetch('/api/partners', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(partnerData)
+        })
+        .then(response => {
+          if (response.ok) {
+            return response.json();
+          }
+          return response.json().then(err => Promise.reject(err));
+        })
+        .then(data => {
+          // Add new partner to dropdown
+          const partnerSelect = document.getElementById('partnerSelect');
+          const option = document.createElement('option');
+          option.value = data.partner.id;
+          option.textContent = `${data.partner.name} (${data.partner.code}) - ${data.partner.type.replace('_', ' ').toUpperCase()}`;
+          option.selected = true;
+          partnerSelect.appendChild(option);
+          
+          // Enable create button
+          document.getElementById('createProtocolBtn').disabled = false;
+          
+          // Hide form
+          document.getElementById('cancelPartnerBtn').click();
+          
+          // Reload page to refresh data
+          setTimeout(() => {
+            window.location.reload();
+          }, 1500);
+          
+          showToast('Partner created successfully!', 'success');
+        })
+        .catch(error => {
+          console.error('Error creating partner:', error);
+          showToast(error.error || 'Error creating partner. Please try again.', 'error');
+        });
+      });
+
+      // Initialize Analytics Charts
+      document.addEventListener('DOMContentLoaded', function() {
+        initializeCharts();
+      });
+
+      function initializeCharts() {
+        // Daily Trends Chart
+        const dailyTrendsCtx = document.getElementById('dailyTrendsChart').getContext('2d');
+        const dailyTrendsData = <%- JSON.stringify(analytics.dailyTrends) %>;
+        
+        new Chart(dailyTrendsCtx, {
+          type: 'line',
+          data: {
+            labels: dailyTrendsData.map(d => new Date(d.date).toLocaleDateString('id-ID')),
+            datasets: [{
+              label: 'Created',
+              data: dailyTrendsData.map(d => d.created),
+              borderColor: '#106EBE',
+              backgroundColor: 'rgba(16, 110, 190, 0.1)',
+              tension: 0.4
+            }, {
+              label: 'Delivered',
+              data: dailyTrendsData.map(d => d.delivered),
+              borderColor: '#48bb78',
+              backgroundColor: 'rgba(72, 187, 120, 0.1)',
+              tension: 0.4
+            }, {
+              label: 'Terpakai',
+              data: dailyTrendsData.map(d => d.terpakai),
+              borderColor: '#ed8936',
+              backgroundColor: 'rgba(237, 137, 54, 0.1)',
+              tension: 0.4
+            }]
+          },
+          options: {
+            responsive: true,
+            plugins: {
+              legend: {
+                position: 'top',
+              }
+            },
+            scales: {
+              y: {
+                beginAtZero: true
+              }
+            }
+          }
+        });
+
+        // Hourly Distribution Chart
+        const hourlyCtx = document.getElementById('hourlyChart').getContext('2d');
+        const hourlyData = <%- JSON.stringify(analytics.hourlyDistribution) %>;
+        
+        new Chart(hourlyCtx, {
+          type: 'bar',
+          data: {
+            labels: Array.from({length: 24}, (_, i) => `${i}:00`),
+            datasets: [{
+              label: 'Protocols Created',
+              data: Array.from({length: 24}, (_, i) => {
+                const hour = hourlyData.find(h => parseInt(h.hour) === i);
+                return hour ? hour.count : 0;
+              }),
+              backgroundColor: 'rgba(102, 126, 234, 0.6)',
+              borderColor: '#106EBE',
+              borderWidth: 1
+            }]
+          },
+          options: {
+            responsive: true,
+            plugins: {
+              legend: {
+                display: false
+              }
+            },
+            scales: {
+              y: {
+                beginAtZero: true
+              }
+            }
+          }
+        });
+
+        // Status Pie Chart
+        const statusPieCtx = document.getElementById('statusPieChart').getContext('2d');
+        
+        new Chart(statusPieCtx, {
+          type: 'doughnut',
+          data: {
+            labels: ['Created', 'Delivered', 'Terpakai'],
+            datasets: [{
+              data: [<%= stats.created %>, <%= stats.delivered %>, <%= stats.terpakai %>],
+              backgroundColor: [
+                '#106EBE',
+                '#48bb78', 
+                '#ed8936'
+              ],
+              borderWidth: 2,
+              borderColor: '#fff'
+            }]
+          },
+          options: {
+            responsive: true,
+            plugins: {
+              legend: {
+                position: 'bottom'
+              }
+            }
+          }
+        });
+
+        // Province Performance Chart
+        const provinceCtx = document.getElementById('provinceChart').getContext('2d');
+        const provinceData = <%- JSON.stringify(analytics.provincePerformance || []) %>;
+
+        new Chart(provinceCtx, {
+          type: 'bar',
+          data: {
+            labels: provinceData.map(p => p.province_code),
+            datasets: [{
+              label: 'Protocol Count',
+              data: provinceData.map(p => p.count),
+              backgroundColor: [
+                '#106EBE',
+                '#0d4f88',
+                '#0FFCBE',
+                '#48bb78',
+                '#ed8936'
+              ],
+              borderWidth: 1
+            }]
+          },
+          options: {
+            responsive: true,
+            indexAxis: 'y', // horizontal bars in Chart.js v3+
+            plugins: {
+              legend: {
+                display: false
+              }
+            },
+            scales: {
+              x: {
+                beginAtZero: true
+              }
+            }
+          }
+        });
+      }
+
+      // Mobile Menu Toggle
+      const mobileMenuToggle = document.getElementById('mobileMenuToggle');
+      const mobileNav = document.getElementById('mobileNav');
+      const mobileNavBackdrop = document.getElementById('mobileNavBackdrop');
+
+      if (mobileMenuToggle) {
+        mobileMenuToggle.addEventListener('click', function() {
+          this.classList.toggle('active');
+          mobileNav.classList.toggle('active');
+          mobileNavBackdrop.classList.toggle('active');
+          document.body.style.overflow = mobileNav.classList.contains('active') ? 'hidden' : '';
+        });
+
+        mobileNavBackdrop.addEventListener('click', function() {
+          mobileMenuToggle.classList.remove('active');
+          mobileNav.classList.remove('active');
+          this.classList.remove('active');
+          document.body.style.overflow = '';
+        });
+
+        // Close menu on link click
+        const navLinks = mobileNav.querySelectorAll('a');
+        navLinks.forEach(link => {
+          link.addEventListener('click', function() {
+            mobileMenuToggle.classList.remove('active');
+            mobileNav.classList.remove('active');
+            mobileNavBackdrop.classList.remove('active');
+            document.body.style.overflow = '';
+          });
+        });
+      }
+    </script>
+  </body>
+</html>

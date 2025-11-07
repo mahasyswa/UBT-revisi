@@ -1,0 +1,13 @@
+<!-- SVG icons for PWA - These will work as placeholder icons -->
+<!-- In production, you would replace these with proper PNG/ICO files -->
+
+<!-- 72x72 icon -->
+<svg width="72" height="72" viewBox="0 0 72 72" xmlns="http://www.w3.org/2000/svg">
+  <rect width="72" height="72" fill="#106EBE"/>
+  <rect x="12" y="12" width="48" height="48" fill="white" rx="4"/>
+  <rect x="18" y="18" width="6" height="36" fill="#106EBE"/>
+  <rect x="27" y="18" width="6" height="36" fill="#106EBE"/>
+  <rect x="36" y="18" width="6" height="36" fill="#106EBE"/>
+  <rect x="45" y="18" width="6" height="36" fill="#106EBE"/>
+  <text x="36" y="64" text-anchor="middle" fill="white" font-family="Arial" font-size="8">BCP</text>
+</svg>

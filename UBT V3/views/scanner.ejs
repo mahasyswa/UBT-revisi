@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes, viewport-fit=cover" />
+    <title>Barcode Scanner - Protocol Tracker</title>
+    
+    <!-- PWA Meta Tags -->
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#106EBE">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="Protocol Scanner">
+    <link rel="apple-touch-icon" href="/icons/icon-152x152.svg">
+    
+    <link rel="stylesheet" href="/scanner.css" />
+    <link rel="stylesheet" href="/mobile-responsive.css" />
+    <link rel="stylesheet" href="/toast.css" />
+    <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+    <!-- Add ZXing only for image decoding (won't affect camera scanner) -->
+    <script src="https://unpkg.com/@zxing/library@0.20.0"></script>
+    <script src="https://unpkg.com/@zxing/browser@0.1.4"></script>
+</head>
+<body>
+    <div class="scanner-container">
+        <header class="scanner-header">
+            <div class="header-top">
+                <% if (typeof user !== 'undefined') { %>
+                    <div class="user-info">
+                        Logged in as <strong><%= user.full_name || user.username %></strong>
+                        <% if (user.role === 'admin' || user.role === 'operator') { %>
+                            — <a href="/" class="back-link">📊 Dashboard</a>
+                        <% } %>
+                        | <a href="/logout" class="back-link">🚪 Logout</a>
+                    </div>
+                <% } %>
+            </div>
+            <h1>📱 Protocol Scanner</h1>
+            <p>Scan QR code untuk update status protocol</p>
+        </header>
+
+        <!-- Scanner Interface -->
+        <div class="scanner-section">
+            <div id="qr-reader" class="qr-reader"></div>
+            <div class="scanner-controls">
+                <button id="start-scan" class="btn-scan">🔍 Start Scanning</button>
+                <button id="stop-scan" class="btn-stop" style="display: none;">⏹️ Stop Scanning</button>
+                <input type="file" id="image-file" accept="image/*" style="display:none" />
+                <button id="pick-image" class="btn-secondary">🖼️ Pilih Gambar</button>
+            </div>
+            
+            <!-- Manual Input Alternative -->
+            <div class="manual-input">
+                <h3>Or Enter Code Manually</h3>
+                <div class="input-group">
+                    <input type="text" id="manual-code" placeholder="Enter code manually..." />
+                    <button id="submit-manual" class="btn-submit">Check Code</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Scan Results -->
+        <div id="scan-result" class="scan-result" style="display: none;">
+            <div class="result-card">
+                <h3>📦 Scan Result</h3>
+                <div id="result-content"></div>
+                <div class="action-buttons" id="action-buttons" style="display: none;">
+                    <button id="mark-terpakai" class="btn-action btn-terpakai">✅ Mark as Terpakai</button>
+                    <button id="mark-delivered" class="btn-action btn-delivered">🚚 Mark as Delivered</button>
+                    <button id="scan-another" class="btn-action btn-secondary">🔄 Scan Another</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Loading Overlay -->
+        <div id="loading" class="loading-overlay" style="display: none;">
+            <div class="spinner"></div>
+            <p>Processing...</p>
+        </div>
+
+        <!-- Toast Messages -->
+        <div id="toast" class="toast"></div>
+    </div>
+
+    <script>
+    let html5QrcodeScanner = null;
+    let imageReader = null; // ZXing reader for image decode only
+    let isScanning = false;
+
+    function initScanner() {
+        html5QrcodeScanner = new Html5QrcodeScanner(
+            "qr-reader",
+            { 
+                fps: 10, 
+                qrbox: { width: 250, height: 250 },
+                aspectRatio: 1.0,
+                showTorchButtonIfSupported: true,
+                showZoomSliderIfSupported: true
+            },
+            false
+        );
+    }
+
+    // Define callbacks for html5-qrcode
+    function onScanSuccess(decodedText, decodedResult) {
+        try { stopScanning(); } catch(_) {}
+        if (decodedText) {
+            processCode(decodedText.trim());
+        }
+    }
+    function onScanFailure(error) {
+        // No-op: ignore frequent decode failures to keep UI smooth
+    }
+
+    function startScanning() {
+        if (!html5QrcodeScanner) initScanner();
+        html5QrcodeScanner.render(onScanSuccess, onScanFailure);
+        isScanning = true;
+        document.getElementById('start-scan').style.display = 'none';
+        document.getElementById('stop-scan').style.display = 'inline-block';
+    }
+
+    function stopScanning() {
+        if (html5QrcodeScanner) {
+            html5QrcodeScanner.clear();
+            isScanning = false;
+            document.getElementById('start-scan').style.display = 'inline-block';
+            document.getElementById('stop-scan').style.display = 'none';
+        }
+    }
+
+    // Process scanned/entered code
+    async function processCode(rawCode) {
+        const code = (rawCode || '').trim();
+        if (!code) {
+            showToast('Kode kosong', 'error');
+            return;
+        }
+        showLoading(true);
+        try {
+            const res = await fetch(`/scan/${encodeURIComponent(code)}`);
+            const isJson = (res.headers.get('content-type') || '').includes('application/json');
+            const data = isJson ? await res.json() : { error: await res.text() };
+            showLoading(false);
+            if (!res.ok || data.error) {
+                showToast(data.error || `Kode tidak ditemukan (${res.status})`, 'error');
+                return;
+            }
+            displayResult(data);
+        } catch (err) {
+            showLoading(false);
+            showToast('Gagal memeriksa kode. Periksa koneksi.', 'error');
+        }
+    }
+
+        // Display scan result
+        function displayResult(protocol) {
+            const resultContent = document.getElementById('result-content');
+            const actionButtons = document.getElementById('action-buttons');
+            
+            resultContent.innerHTML = `
+                <div class="protocol-info">
+                    <div class="info-row">
+                        <span class="label">Code:</span>
+                        <span class="value">${protocol.code}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="label">Province:</span>
+                        <span class="value">${protocol.province_code}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="label">Created:</span>
+                        <span class="value">${protocol.created_at_formatted}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="label">Current Status:</span>
+                        <span class="value status-${protocol.status}">${protocol.status.toUpperCase()}</span>
+                    </div>
+                </div>
+            `;
+            
+            // Show action buttons only if not already terpakai
+            if (protocol.status !== 'terpakai') {
+                actionButtons.style.display = 'block';
+                
+                // Store current code for actions
+                document.getElementById('mark-terpakai').onclick = () => confirmAction(protocol.code, 'mark_terpakai');
+                document.getElementById('mark-delivered').onclick = () => confirmAction(protocol.code, 'mark_delivered');
+            } else {
+                actionButtons.style.display = 'none';
+                showToast('This protocol is already marked as terpakai', 'info');
+            }
+            
+            document.getElementById('scan-result').style.display = 'block';
+        }
+
+        // Confirm action before updating
+        function confirmAction(code, action) {
+            const actionText = action === 'mark_terpakai' ? 'TERPAKAI' : 'DELIVERED';
+            
+            if (confirm(`Are you sure you want to mark this protocol as ${actionText}?`)) {
+                updateStatus(code, action);
+            }
+        }
+
+        // Update protocol status
+        function updateStatus(code, action) {
+            showLoading(true);
+            
+            fetch(`/api/confirm-usage/${code}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ action })
+            })
+            .then(response => response.json())
+            .then(data => {
+                showLoading(false);
+                if (data.success) {
+                    showToast(data.message, 'success');
+                    displayResult(data.protocol); // Refresh display
+                } else {
+                    showToast(data.error || 'Failed to update status', 'error');
+                }
+            })
+            .catch(error => {
+                showLoading(false);
+                showToast('Error updating status', 'error');
+            });
+        }
+
+        // Show/hide loading
+        function showLoading(show) {
+            document.getElementById('loading').style.display = show ? 'flex' : 'none';
+        }
+
+        // Show toast message
+        function showToast(message, type = 'info') {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.className = `toast toast-${type} show`;
+            
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 3000);
+        }
+
+        // Event listeners
+        document.getElementById('start-scan').addEventListener('click', startScanning);
+        document.getElementById('stop-scan').addEventListener('click', stopScanning);
+        
+        // Pick image from gallery and decode with ZXing (single, robust handler)
+        const pickBtn = document.getElementById('pick-image');
+        const fileInput = document.getElementById('image-file');
+        if (pickBtn && fileInput) {
+            pickBtn.addEventListener('click', () => fileInput.click());
+            fileInput.addEventListener('change', async (e) => {
+                const file = e.target.files && e.target.files[0];
+                if (!file) return;
+                // Stop live scan to free camera while decoding image
+                try { stopScanning(); } catch (_) {}
+                showLoading(true);
+                try {
+                    if (!imageReader) imageReader = new ZXingBrowser.BrowserMultiFormatReader();
+                    const img = new Image();
+                    img.onload = async () => {
+                        try {
+                            const result = await imageReader.decodeFromImageElement(img);
+                            showLoading(false);
+                            if (result && result.getText()) {
+                                processCode(result.getText().trim());
+                            } else {
+                                showToast('Tidak bisa membaca barcode dari gambar', 'error');
+                            }
+                        } catch (err) {
+                            showLoading(false);
+                            console.error(err);
+                            showToast('Gagal membaca barcode dari gambar', 'error');
+                        } finally {
+                            URL.revokeObjectURL(img.src);
+                            e.target.value = '';
+                        }
+                    };
+                    img.onerror = () => {
+                        showLoading(false);
+                        showToast('File gambar tidak valid', 'error');
+                    };
+                    img.src = URL.createObjectURL(file);
+                } catch (err) {
+                    showLoading(false);
+                    console.error(err);
+                    showToast('Terjadi kesalahan saat memproses gambar', 'error');
+                }
+            });
+        }
+        
+        document.getElementById('submit-manual').addEventListener('click', () => {
+            const code = document.getElementById('manual-code').value.trim();
+            if (code) {
+                processCode(code);
+            } else {
+                showToast('Mohon isi kode terlebih dahulu', 'error');
+            }
+        });
+
+        document.getElementById('manual-code').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                document.getElementById('submit-manual').click();
+            }
+        });
+
+        document.getElementById('scan-another').addEventListener('click', () => {
+            document.getElementById('scan-result').style.display = 'none';
+            document.getElementById('manual-code').value = '';
+            startScanning();
+        });
+
+    // Initialize on load
+    initScanner();
+
+        // Unregister old Service Worker from Vercel
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.getRegistrations().then(function(registrations) {
+                for(let registration of registrations) {
+                    registration.unregister().then(function(success) {
+                        console.log('SW unregistered:', success);
+                    });
+                }
+            });
+            // Clear all caches
+            caches.keys().then(function(names) {
+                for (let name of names) {
+                    caches.delete(name);
+                }
+            });
+        }
+    </script>
+    <script src="/toast.js"></script>
+</body>
+</html>

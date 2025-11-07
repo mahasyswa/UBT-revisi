@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes, viewport-fit=cover" />
+    <title>Partners Management - Barcode Protocol</title>
+    
+    <!-- PWA Meta Tags -->
+    <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#106EBE">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="Barcode Protocol">
+    <link rel="apple-touch-icon" href="/icons/icon-152x152.svg">
+    
+    <link rel="stylesheet" href="/styles.css" />
+    <link rel="stylesheet" href="/mobile-responsive.css" />
+    <link rel="stylesheet" href="/toast.css" />
+  </head>
+  <body>
+    <div class="container">
+      <header>
+        <h1>Partners Management</h1>
+        <div class="user">
+          Logged in as <strong><%= user.full_name || user %></strong> 
+          <% if (user.role) { %>(<%= user.role %>)<% } %> — 
+          <a href="/">Dashboard</a> |
+          <% if (user.role === 'admin') { %>
+            <a href="/users">Users</a> | 
+          <% } %>
+          <a href="/logout">Logout</a>
+        </div>
+      </header>
+
+      <section>
+        <h2>Add New Partner</h2>
+        <form method="post" action="/partners" class="partner-form">
+          <div class="form-row">
+            <div class="form-group">
+              <label for="name">Nama Mitra</label>
+              <input type="text" id="name" name="name" required placeholder="Nama lengkap mitra">
+            </div>
+            <div class="form-group">
+              <label for="type">Jenis Mitra</label>
+              <select id="type" name="type" required>
+                <option value="">Pilih Jenis</option>
+                <option value="klinik">Klinik</option>
+                <option value="puskesmas">Puskesmas</option>
+                <option value="rumah_sakit">Rumah Sakit</option>
+              </select>
+            </div>
+          </div>
+          
+          <div class="form-row">
+            <div class="form-group">
+              <label for="code">Kode Mitra</label>
+              <input type="text" id="code" name="code" required placeholder="Kode unik (misal: KLN001)" maxlength="10">
+            </div>
+            <div class="form-group">
+              <label for="province_code">Provinsi</label>
+              <select id="province_code" name="province_code" required>
+                <option value="">Pilih Provinsi</option>
+                <% provinces.forEach(function(p){ %>
+                <option value="<%= p.code %>"><%= p.name %> (<%= p.code %>)</option>
+                <% }) %>
+              </select>
+            </div>
+          </div>
+          
+          <div class="form-row">
+            <div class="form-group">
+              <label for="phone">Telepon</label>
+              <input type="tel" id="phone" name="phone" placeholder="Nomor telepon">
+            </div>
+            <div class="form-group">
+              <label for="email">Email</label>
+              <input type="email" id="email" name="email" placeholder="Email kontak">
+            </div>
+          </div>
+          
+          <div class="form-group">
+            <label for="address">Alamat</label>
+            <textarea id="address" name="address" rows="3" placeholder="Alamat lengkap mitra"></textarea>
+          </div>
+          
+          <button type="submit" class="btn-primary">Add Partner</button>
+        </form>
+      </section>
+
+      <section>
+        <h2>Partners List</h2>
+        <div class="partners-stats">
+          <div class="stat-card">
+            <div class="stat-number"><%= partners.length %></div>
+            <div class="stat-label">Total Partners</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-number"><%= partners.filter(p => p.is_active).length %></div>
+            <div class="stat-label">Active Partners</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-number"><%= partners.filter(p => p.type === 'klinik').length %></div>
+            <div class="stat-label">Klinik</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-number"><%= partners.filter(p => p.type === 'puskesmas').length %></div>
+            <div class="stat-label">Puskesmas</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-number"><%= partners.filter(p => p.type === 'rumah_sakit').length %></div>
+            <div class="stat-label">Rumah Sakit</div>
+          </div>
+        </div>
+        
+        <table class="partners-table">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Name</th>
+              <th>Type</th>
+              <th>Code</th>
+              <th>Province</th>
+              <th>Protocols</th>
+              <th>Status</th>
+              <th>Created</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% partners.forEach(function(partner){ %>
+            <tr class="<%= partner.is_active ? 'active' : 'inactive' %>">
+              <td><%= partner.id %></td>
+              <td>
+                <div class="partner-info">
+                  <strong><%= partner.name %></strong>
+                  <% if (partner.phone) { %>
+                    <br><small>📞 <%= partner.phone %></small>
+                  <% } %>
+                  <% if (partner.email) { %>
+                    <br><small>✉️ <%= partner.email %></small>
+                  <% } %>
+                </div>
+              </td>
+              <td>
+                <span class="type-badge type-<%= partner.type %>">
+                  <%= partner.type.replace('_', ' ').toUpperCase() %>
+                </span>
+              </td>
+              <td><code><%= partner.code %></code></td>
+              <td><%= partner.province_code %></td>
+              <td>
+                <span class="protocol-count">
+                  <%= partner.protocol_count || 0 %>
+                </span>
+              </td>
+              <td>
+                <span class="status-badge <%= partner.is_active ? 'status-active' : 'status-inactive' %>">
+                  <%= partner.is_active ? 'Active' : 'Inactive' %>
+                </span>
+              </td>
+              <td>
+                <%= new Date(partner.created_at).toLocaleDateString('id-ID') %>
+                <% if (partner.created_by_username) { %>
+                  <br><small>by <%= partner.created_by_username %></small>
+                <% } %>
+              </td>
+              <td>
+                <% if (user.role === 'admin') { %>
+                  <form method="post" action="/partners/<%= partner.id %>/toggle-status" style="display: inline;">
+                    <button type="submit" class="btn-small <%= partner.is_active ? 'btn-warning' : 'btn-success' %>">
+                      <%= partner.is_active ? 'Deactivate' : 'Activate' %>
+                    </button>
+                  </form>
+                <% } %>
+              </td>
+            </tr>
+            <% }) %>
+            <% if (partners.length === 0) { %>
+            <tr>
+              <td colspan="9" class="no-data">No partners found. Add your first partner above.</td>
+            </tr>
+            <% } %>
+          </tbody>
+        </table>
+      </section>
+    </div>
+    
+    <style>
+      .partner-form {
+        background: #f8f9fa;
+        padding: 20px;
+        border-radius: 8px;
+        margin-bottom: 30px;
+      }
+      
+      .form-row {
+        display: flex;
+        gap: 20px;
+        margin-bottom: 15px;
+      }
+      
+      .form-group {
+        flex: 1;
+      }
+      
+      .form-group label {
+        display: block;
+        margin-bottom: 5px;
+        font-weight: bold;
+        color: #333;
+      }
+      
+      .form-group input,
+      .form-group select,
+      .form-group textarea {
+        width: 100%;
+        padding: 10px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        font-size: 14px;
+      }
+      
+      .form-group input:focus,
+      .form-group select:focus,
+      .form-group textarea:focus {
+        outline: none;
+        border-color: #106EBE;
+        box-shadow: 0 0 0 2px rgba(16, 110, 190, 0.2);
+      }
+      
+      .partners-stats {
+        display: flex;
+        gap: 15px;
+        margin-bottom: 20px;
+        flex-wrap: wrap;
+      }
+      
+      .partners-stats .stat-card {
+        flex: 1;
+        min-width: 120px;
+        background: linear-gradient(135deg, #106EBE 0%, #0d4f88 100%);
+        color: white;
+        padding: 15px;
+        border-radius: 8px;
+        text-align: center;
+      }
+      
+      .partners-stats .stat-number {
+        font-size: 24px;
+        font-weight: bold;
+        margin-bottom: 5px;
+      }
+      
+      .partners-stats .stat-label {
+        font-size: 12px;
+        opacity: 0.9;
+      }
+      
+      .partners-table {
+        width: 100%;
+        border-collapse: collapse;
+        background: white;
+        border-radius: 8px;
+        overflow: hidden;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+      }
+      
+      .partners-table th {
+        background: #f8f9fa;
+        padding: 12px;
+        text-align: left;
+        font-weight: bold;
+        border-bottom: 2px solid #e9ecef;
+      }
+      
+      .partners-table td {
+        padding: 12px;
+        border-bottom: 1px solid #e9ecef;
+      }
+      
+      .partners-table tr.inactive {
+        opacity: 0.6;
+        background-color: #f8f9fa;
+      }
+      
+      .partner-info strong {
+        display: block;
+        margin-bottom: 4px;
+      }
+      
+      .partner-info small {
+        color: #666;
+        font-size: 11px;
+      }
+      
+      .type-badge {
+        display: inline-block;
+        padding: 4px 8px;
+        border-radius: 12px;
+        font-size: 11px;
+        font-weight: bold;
+        text-transform: uppercase;
+      }
+      
+      .type-klinik {
+        background: #e3f2fd;
+        color: #1976d2;
+      }
+      
+      .type-puskesmas {
+        background: #f3e5f5;
+        color: #7b1fa2;
+      }
+      
+      .type-rumah_sakit {
+        background: #e8f5e8;
+        color: #388e3c;
+      }
+      
+      .protocol-count {
+        display: inline-block;
+        background: #e3f2fd;
+        color: #1976d2;
+        padding: 4px 8px;
+        border-radius: 12px;
+        font-size: 12px;
+        font-weight: bold;
+      }
+      
+      .status-badge {
+        display: inline-block;
+        padding: 4px 8px;
+        border-radius: 12px;
+        font-size: 11px;
+        font-weight: bold;
+      }
+      
+      .status-active {
+        background: #d4edda;
+        color: #155724;
+      }
+      
+      .status-inactive {
+        background: #f8d7da;
+        color: #721c24;
+      }
+      
+      .btn-small {
+        padding: 4px 8px;
+        font-size: 11px;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-weight: bold;
+      }
+      
+      .btn-warning {
+        background: #ffc107;
+        color: #212529;
+      }
+      
+      .btn-warning:hover {
+        background: #e0a800;
+      }
+      
+      .btn-success {
+        background: #28a745;
+        color: white;
+      }
+      
+      .btn-success:hover {
+        background: #218838;
+      }
+      
+      .btn-primary {
+        background: #007bff;
+        color: white;
+        padding: 12px 24px;
+        border: none;
+        border-radius: 6px;
+        font-size: 14px;
+        font-weight: bold;
+        cursor: pointer;
+        transition: background-color 0.2s;
+      }
+      
+      .btn-primary:hover {
+        background: #0056b3;
+      }
+      
+      .no-data {
+        text-align: center;
+        color: #666;
+        font-style: italic;
+        padding: 40px;
+      }
+      
+      @media (max-width: 768px) {
+        .form-row {
+          flex-direction: column;
+          gap: 10px;
+        }
+        
+        .partners-stats {
+          flex-direction: column;
+        }
+        
+        .partners-table {
+          font-size: 12px;
+        }
+        
+        .partners-table th,
+        .partners-table td {
+          padding: 8px 4px;
+        }
+      }
+    </style>
+    <script src="/toast.js"></script>
+  </body>
+</html>

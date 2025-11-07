@@ -1,0 +1,45 @@
+{
+  "name": "barcode-protocol-app",
+  "version": "1.0.0",
+  "description": "Advanced barcode protocol system with multi-user management, analytics, and PWA features",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "nodemon server.js",
+    "build": "echo 'No build step required'",
+    "postinstall": "echo 'Dependencies installed successfully'"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
+  },
+  "dependencies": {
+    "bcrypt": "^5.1.1",
+    "body-parser": "^1.20.2",
+    "bwip-js": "^2.0.10",
+    "chart.js": "^4.4.0",
+    "cors": "^2.8.5",
+    "ejs": "^3.1.9",
+    "express": "^4.18.2",
+    "express-rate-limit": "^7.1.5",
+    "express-session": "^1.17.3",
+    "html5-qrcode": "^2.3.8",
+    "jsonwebtoken": "^9.0.2",
+    "socket.io": "^4.8.1",
+    "sqlite3": "^5.1.6",
+    "validator": "^13.11.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1",
+    "selfsigned": "^3.0.1"
+  },
+  "keywords": [
+    "barcode",
+    "protocol",
+    "tracking",
+    "analytics",
+    "pwa"
+  ],
+  "author": "UBT Project",
+  "license": "MIT"
+}

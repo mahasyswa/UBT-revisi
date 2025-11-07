@@ -1,0 +1,25 @@
+services:
+  - type: web
+    name: barcode-protocol-app
+    env: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        fromGroup: web
+      - key: JWT_SECRET
+        generateValue: true
+      - key: SESSION_SECRET
+        generateValue: true
+    # Persistent disk for SQLite database. Render will create and mount this disk.
+    disks:
+      - name: data-disk
+        sizeGb: 5
+        mountPath: /data
+    # Make the disk path available to the app via env var
+    envVars:
+      - key: DATA_DIR
+        value: /data
