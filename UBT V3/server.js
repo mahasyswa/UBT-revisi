@@ -30,74 +30,26 @@ const JWT_SECRET = process.env.JWT_SECRET || 'your-super-secret-jwt-key-change-i
 const WIB_OFFSET = 7 * 60 * 60 * 1000; // 7 hours in milliseconds
 
 function getWIBDate(date = new Date()) {
-  // Convert to WIB (GMT+7)
   const utcTime = date.getTime();
   const wibTime = new Date(utcTime + WIB_OFFSET);
   return wibTime;
 }
 
 function formatWIBTimestamp(date = new Date()) {
-  // Format: YYYY-MM-DD HH:mm:ss in WIB
   const wibDate = getWIBDate(date);
   return wibDate.toISOString().replace('T', ' ').substring(0, 19);
 }
 
 function formatWIBDate(date = new Date()) {
-  // Format: YYYY-MM-DD in WIB
   const wibDate = getWIBDate(date);
   return wibDate.toISOString().substring(0, 10);
 }
 
 function getWIBTimestamp() {
-  // Get current timestamp in WIB format for database
   return formatWIBTimestamp();
 }
 
-// Global error logging to diagnose crashes
-process.on('uncaughtException', (err) => {
-  console.error('Uncaught Exception:', err && err.stack ? err.stack : err);
-});
-
-process.on('unhandledRejection', (reason, promise) => {
-  console.error('Unhandled Rejection at:', promise, 'reason:', reason);
-});
-
-// Rate limiting
-const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 15, // limit each IP to 15 requests per windowMs (increased from 5)
-  message: 'Terlalu banyak percobaan login. Silakan coba lagi setelah 15 menit.',
-  standardHeaders: true,
-  legacyHeaders: false,
-  skipSuccessfulRequests: true, // Don't count successful requests
-  // store: new rateLimit.MemoryStore(), // gunakan default store bawaan
-});
-
-const apiLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 200, // limit each IP to 200 requests per windowMs (increased from 100)
-  standardHeaders: true,
-  legacyHeaders: false,
-});
-
-// Views and static
-app.set('view engine', 'ejs');
-app.set('views', path.join(__dirname, 'views'));
-// Static files
-app.use(express.static(path.join(__dirname, 'public')));
-
-// Manifest route
-app.get('/manifest.json', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'manifest.json'));
-});
-app.use(bodyParser.urlencoded({ extended: true }));
-app.use(express.json());
-// Enable CORS for requests from frontend. Set PUBLIC_FRONTEND_ORIGIN to the
-// exact origin of your frontend (e.g. https://your-frontend.vercel.app).
-// Default is '*' to allow development/testing. For production, set a specific origin.
-app.use(cors({ origin: process.env.PUBLIC_FRONTEND_ORIGIN || '*' }));
-
-// Global error logging
+// Global error logging to diagnose crashes - SINGLE SET ONLY
 const errorLogPath = path.join(__dirname, 'error.log');
 function logFatal(prefix, err) {
   const line = `[${formatWIBTimestamp()}] ${prefix}: ${err && err.stack ? err.stack : err}\n`;
@@ -105,37 +57,66 @@ function logFatal(prefix, err) {
   console.error(prefix, err);
 }
 
-// Keep a single set of global error handlers
 process.on('uncaughtException', (err) => logFatal('uncaughtException', err));
 process.on('unhandledRejection', (reason, promise) => logFatal('unhandledRejection', reason));
+
+// Rate limiting with improved configuration
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 15,
+  message: 'Terlalu banyak percobaan login. Silakan coba lagi setelah 15 menit.',
+  standardHeaders: true,
+  legacyHeaders: false,
+  skipSuccessfulRequests: true,
+});
+
+const apiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 200,
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+// Views and static
+app.set('view engine', 'ejs');
+app.set('views', path.join(__dirname, 'views'));
+app.use(express.static(path.join(__dirname, 'public')));
+
+// Manifest route
+app.get('/manifest.json', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'manifest.json'));
+});
+
+app.use(bodyParser.urlencoded({ extended: true }));
+app.use(express.json());
+app.use(cors({ origin: process.env.PUBLIC_FRONTEND_ORIGIN || '*' }));
 
 // Single health check endpoint (no auth)
 app.get('/healthz', (req, res) => {
   res.json({ status: 'ok', pid: process.pid, uptime: process.uptime(), port: PORT });
 });
 
-// Apply rate limiting to specific routes only
+// Apply rate limiting to specific routes
 app.use('/api/', apiLimiter);
 
+// Improved session configuration
 app.use(session({
-  secret: 'replace-with-secure-secret-in-production',
+  secret: process.env.SESSION_SECRET || 'replace-with-secure-secret-in-production',
   resave: false,
-  saveUninitialized: true, // Changed to true to ensure session is created even for unauthenticated users
+  saveUninitialized: false, // Changed to false for better security
   cookie: {
-    secure: process.env.NODE_ENV === 'production', // auto-detect HTTPS in production
+    secure: process.env.NODE_ENV === 'production',
     httpOnly: true,
     sameSite: 'lax',
-    maxAge: 24 * 60 * 60 * 1000, // 24 hours
-    path: '/', // Ensure cookie is available for all paths
-    domain: undefined // Let Express auto-detect domain
+    maxAge: 24 * 60 * 60 * 1000,
+    path: '/',
   },
-  name: 'connect.sid', // Default session cookie name
-  proxy: true // Trust the reverse proxy (Nginx)
+  name: 'connect.sid',
+  proxy: true
 }));
 
-// Debug middleware - log all requests to help diagnose issues
+// Debug middleware - log all requests
 app.use((req, res, next) => {
-  // Only log non-static files
   if (!req.path.startsWith('/icons/') && !req.path.startsWith('/sw.js') && !req.path.match(/\.(css|js|png|jpg|ico)$/)) {
     console.log(`[${formatWIBTimestamp()}] ${req.method} ${req.path} - Session: ${req.session?.userId || 'none'} - IP: ${req.ip}`);
   }
@@ -167,96 +148,16 @@ app.use((req, res, next) => {
   next();
 });
 
-// Routes
-app.use('/dashboard', dashboardRoutes);
-app.get('/', (req, res) => res.redirect('/dashboard'));
-
-
-// Authentication middleware
-function requireAuth(req, res, next) {
-  // Check for legacy admin session
-  if (req.session && req.session.user === ADMIN_USER && req.session.userId === 0) {
-    req.user = { 
-      id: 0, 
-      username: ADMIN_USER, 
-      full_name: 'Legacy Admin', 
-      role: 'admin', 
-      is_active: 1 
-    };
-    return next();
-  }
-  
-  // Check for regular user session
-  if (req.session && req.session.userId && req.session.userId > 0) {
-    // Get user from database to ensure they're still active
-    db.get('SELECT * FROM users WHERE id = ? AND is_active = 1', [req.session.userId], (err, user) => {
-      if (err || !user) {
-        req.session.destroy();
-        // Check if it's an AJAX/API request
-        if (req.xhr || req.headers.accept?.indexOf('json') > -1) {
-          return res.status(401).json({ error: 'Session expired', redirect: '/login' });
-        }
-        return res.redirect('/login');
-      }
-      req.user = user;
-      next();
-    });
-  } else {
-    // No valid session
-    // Check if it's an AJAX/API request
-    if (req.xhr || req.headers.accept?.indexOf('json') > -1) {
-      return res.status(401).json({ error: 'Authentication required', redirect: '/login' });
-    }
-    return res.redirect('/login');
-  }
-}
-
-// Role-based authorization middleware
-function requireRole(...roles) {
-  return (req, res, next) => {
-    if (!req.user) {
-      return res.status(401).json({ error: 'Authentication required' });
-    }
-    if (!roles.includes(req.user.role)) {
-      return res.status(403).json({ error: 'Insufficient permissions' });
-    }
-    next();
-  };
-}
-
-// Activity logging middleware
-function logActivity(action, targetType = 'system', targetId = null, details = null) {
-  return (req, res, next) => {
-    if (req.session && (req.session.user || req.session.userId !== undefined)) {
-      const ip = req.ip || req.connection.remoteAddress;
-      const userAgent = req.get('User-Agent');
-      
-      // Handle both legacy admin (userId: 0) and regular users
-      const userId = req.session.userId !== undefined ? req.session.userId : (req.user ? req.user.id : 0);
-      
-      db.run(
-        `INSERT INTO activity_logs (user_id, action, target_type, target_id, details, ip_address, user_agent, created_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-        [userId, action, targetType, targetId, details, ip, userAgent, getWIBTimestamp()],
-        function(err) {
-          if (err) {
-            console.error('Activity log error:', err);
-          }
-        }
-      );
-    }
-    next();
-  };
-}
-
-// Simple DB (SQLite) in file. Use DATA_DIR env var (e.g. mounted persistent disk)
+// Simple DB (SQLite) in file
 const dbDir = process.env.DATA_DIR || process.env.DATA_PATH || path.join(__dirname);
 try { fs.mkdirSync(dbDir, { recursive: true }); } catch (e) { /* ignore */ }
 const dbPath = path.join(dbDir, 'data.db');
 console.log('Using SQLite DB at:', dbPath);
 const db = new sqlite3.Database(dbPath);
+
+// Database initialization
 db.serialize(() => {
-  // Partners table (Mitra)
+  // Partners table
   db.run(
     `CREATE TABLE IF NOT EXISTS partners (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -275,7 +176,7 @@ db.serialize(() => {
     )`
   );
   
-  // Check if partner_id column exists in protocols table, if not add it
+  // Check if partner_id column exists
   db.all("PRAGMA table_info(protocols)", (err, columns) => {
     if (!err && columns) {
       const hasPartnerId = columns.some(col => col.name === 'partner_id');
@@ -283,18 +184,16 @@ db.serialize(() => {
         console.log('Adding partner_id column to protocols table...');
         db.run('ALTER TABLE protocols ADD COLUMN partner_id INTEGER REFERENCES partners(id)', (alterErr) => {
           if (alterErr) {
-            console.log('Note: Could not add partner_id column (may already exist):', alterErr.message);
+            console.log('Note: Could not add partner_id column:', alterErr.message);
           } else {
-            console.log('Successfully added partner_id column to protocols table');
+            console.log('Successfully added partner_id column');
           }
         });
-      } else {
-        console.log('partner_id column already exists in protocols table');
       }
     }
   });
   
-  // Protocols table (updated with partner_id)
+  // Protocols table
   db.run(
     `CREATE TABLE IF NOT EXISTS protocols (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -332,7 +231,7 @@ db.serialize(() => {
       email TEXT UNIQUE NOT NULL,
       password_hash TEXT NOT NULL,
       full_name TEXT NOT NULL,
-      role TEXT NOT NULL DEFAULT 'viewer',
+      role TEXT NOT NULL DEFAULT 'operator',
       is_active INTEGER DEFAULT 1,
       created_at TEXT DEFAULT CURRENT_TIMESTAMP,
       last_login TEXT,
@@ -372,15 +271,14 @@ db.serialize(() => {
     )`
   );
   
-  // Migrate old roles to new roles
+  // Migrate old roles
   db.run(`UPDATE users SET role = 'operator' WHERE role = 'viewer'`, (err) => {
     if (err) console.log('Role migration note:', err.message);
   });
   
-  // Create default admin user if not exists
+  // Create default admin user
   db.get("SELECT id FROM users WHERE username = 'admin'", (err, row) => {
     if (!row) {
-      const bcrypt = require('bcrypt');
       const adminPassword = bcrypt.hashSync('admin', 10);
       db.run(
         `INSERT INTO users (username, email, password_hash, full_name, role, is_active) 
@@ -391,24 +289,107 @@ db.serialize(() => {
   });
 });
 
-// Legacy admin credentials (will be removed)
+// Legacy admin credentials
 const ADMIN_USER = 'admin';
 const ADMIN_PASS = 'admin';
 
-// Legacy auth function (for backwards compatibility)
-function ensureAuth(req, res, next) {
-  if (req.session && (req.session.user === ADMIN_USER || req.session.userId)) {
+// Authentication middleware (IMPROVED)
+function requireAuth(req, res, next) {
+  // Check for legacy admin session
+  if (req.session && req.session.user === ADMIN_USER && req.session.userId === 0) {
+    req.user = { 
+      id: 0, 
+      username: ADMIN_USER, 
+      full_name: 'Legacy Admin', 
+      role: 'admin', 
+      is_active: 1 
+    };
     return next();
   }
-  return res.redirect('/login');
+  
+  // Check for regular user session
+  if (req.session && req.session.userId && req.session.userId > 0) {
+    db.get('SELECT * FROM users WHERE id = ? AND is_active = 1', [req.session.userId], (err, user) => {
+      if (err || !user) {
+        req.session.destroy();
+        if (req.xhr || req.headers.accept?.indexOf('json') > -1) {
+          return res.status(401).json({ error: 'Session expired', redirect: '/login' });
+        }
+        return res.redirect('/login');
+      }
+      req.user = user;
+      next();
+    });
+  } else {
+    if (req.xhr || req.headers.accept?.indexOf('json') > -1) {
+      return res.status(401).json({ error: 'Authentication required', redirect: '/login' });
+    }
+    return res.redirect('/login');
+  }
 }
 
-// Province codes (3 letters) - updated to use 3-letter codes
+// Legacy auth function (IMPROVED with async handling)
+function ensureAuth(req, res, next) {
+  // Legacy admin check
+  if (req.session && req.session.user === ADMIN_USER) {
+    return next();
+  }
+  
+  // Regular user check
+  if (req.session && req.session.userId) {
+    db.get('SELECT * FROM users WHERE id = ? AND is_active = 1', [req.session.userId], (err, user) => {
+      if (err || !user) {
+        return res.redirect('/login');
+      }
+      req.user = user;
+      next();
+    });
+  } else {
+    return res.redirect('/login');
+  }
+}
+
+// Role-based authorization middleware
+function requireRole(...roles) {
+  return (req, res, next) => {
+    if (!req.user) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+    if (!roles.includes(req.user.role)) {
+      return res.status(403).json({ error: 'Insufficient permissions' });
+    }
+    next();
+  };
+}
+
+// Activity logging middleware
+function logActivity(action, targetType = 'system', targetId = null, details = null) {
+  return (req, res, next) => {
+    if (req.session && (req.session.user || req.session.userId !== undefined)) {
+      const ip = req.ip || req.connection.remoteAddress;
+      const userAgent = req.get('User-Agent');
+      const userId = req.session.userId !== undefined ? req.session.userId : (req.user ? req.user.id : 0);
+      
+      db.run(
+        `INSERT INTO activity_logs (user_id, action, target_type, target_id, details, ip_address, user_agent, created_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+        [userId, action, targetType, targetId, details, ip, userAgent, getWIBTimestamp()],
+        function(err) {
+          if (err) console.error('Activity log error:', err);
+        }
+      );
+    }
+    next();
+  };
+}
+
+// Province codes - FIXED DUPLICATES
 const provinces = [
   { code: 'ACE', name: 'Aceh' },
   { code: 'SUT', name: 'Sumatera Utara' },
   { code: 'SUB', name: 'Sumatera Barat' },
   { code: 'RIA', name: 'Riau' },
+  { code: 'KEP', name: 'Kepulauan Riau' },
   { code: 'JAM', name: 'Jambi' },
   { code: 'SUS', name: 'Sumatera Selatan' },
   { code: 'BBL', name: 'Bangka Belitung' },
@@ -428,31 +409,39 @@ const provinces = [
   { code: 'KAI', name: 'Kalimantan Timur' },
   { code: 'KAS', name: 'Kalimantan Selatan' },
   { code: 'KAU', name: 'Kalimantan Utara' },
-  { code: 'SUS', name: 'Sulawesi Selatan' },
-  { code: 'SUT', name: 'Sulawesi Tengah' },
-  { code: 'SUG', name: 'Sulawesi Tenggara' },
-  { code: 'SUB', name: 'Sulawesi Barat' },
-  { code: 'SUN', name: 'Sulawesi Utara' },
+  { code: 'SLS', name: 'Sulawesi Selatan' },
+  { code: 'SLT', name: 'Sulawesi Tengah' },
+  { code: 'SLG', name: 'Sulawesi Tenggara' },
+  { code: 'SLB', name: 'Sulawesi Barat' },
+  { code: 'SLU', name: 'Sulawesi Utara' },
+  { code: 'GOR', name: 'Gorontalo' },
   { code: 'MAL', name: 'Maluku' },
   { code: 'MAU', name: 'Maluku Utara' },
   { code: 'PAP', name: 'Papua' },
-  { code: 'PAB', name: 'Papua Barat' }
+  { code: 'PAB', name: 'Papua Barat' },
+  { code: 'PPS', name: 'Papua Selatan' },
+  { code: 'PPT', name: 'Papua Tengah' },
+  { code: 'PPG', name: 'Papua Pegunungan' }
 ];
 
-app.get('/', requireAuth, requireRole('admin', 'operator'), logActivity('view_dashboard'), (req, res) => {
+// Routes
+app.use('/dashboard', dashboardRoutes);
+app.get('/', (req, res) => res.redirect('/dashboard'));
+
+// Dashboard route
+app.get('/dashboard', requireAuth, requireRole('admin', 'operator'), logActivity('view_dashboard'), (req, res) => {
   const { period, start_date, end_date } = req.query;
   
   try {
-    // Calculate date filter based on period using WIB timezone
     let dateFilter = '';
     let params = [];
     
-    const now = getWIBDate(); // Use WIB timezone
+    const now = getWIBDate();
     const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     
     if (period === 'week') {
       const weekStart = new Date(today);
-      weekStart.setDate(today.getDate() - today.getDay()); // Start of week (Sunday)
+      weekStart.setDate(today.getDate() - today.getDay());
       dateFilter = ' WHERE p.created_at >= ?';
       params.push(formatWIBTimestamp(weekStart));
     } else if (period === 'month') {
@@ -460,20 +449,17 @@ app.get('/', requireAuth, requireRole('admin', 'operator'), logActivity('view_da
       dateFilter = ' WHERE p.created_at >= ?';
       params.push(formatWIBTimestamp(monthStart));
     } else if (period === 'custom' && start_date && end_date) {
-      // Parse dates in WIB timezone
       const startDateTime = formatWIBTimestamp(new Date(start_date + 'T00:00:00'));
       const endDateTime = formatWIBTimestamp(new Date(end_date + 'T23:59:59'));
       dateFilter = ' WHERE p.created_at >= ? AND p.created_at <= ?';
       params.push(startDateTime, endDateTime);
     } else {
-      // Today (default) in WIB
       const todayStart = formatWIBTimestamp(today);
       const todayEnd = formatWIBTimestamp(new Date(today.getTime() + 24 * 60 * 60 * 1000));
       dateFilter = ' WHERE p.created_at >= ? AND p.created_at < ?';
       params.push(todayStart, todayEnd);
     }
     
-    // Get filtered protocols for display with partner information
     db.all(
       `SELECT p.*, pt.name as partner_name, pt.type as partner_type, pt.code as partner_code 
        FROM protocols p 
@@ -486,7 +472,6 @@ app.get('/', requireAuth, requireRole('admin', 'operator'), logActivity('view_da
           filteredProtocols = [];
         }
         
-        // Get all protocols for statistics with same filter
         db.all(
           `SELECT p.status, p.province_code, pt.name as partner_name 
            FROM protocols p 
@@ -498,7 +483,6 @@ app.get('/', requireAuth, requireRole('admin', 'operator'), logActivity('view_da
               statsData = [];
             }
             
-            // Calculate statistics
             const stats = {
               total: statsData.length,
               created: statsData.filter(p => p.status === 'created').length,
@@ -507,7 +491,6 @@ app.get('/', requireAuth, requireRole('admin', 'operator'), logActivity('view_da
               topProvinces: []
             };
             
-            // Calculate top provinces
             const provinceCount = {};
             statsData.forEach(p => {
               provinceCount[p.province_code] = (provinceCount[p.province_code] || 0) + 1;
@@ -522,7 +505,6 @@ app.get('/', requireAuth, requireRole('admin', 'operator'), logActivity('view_da
               .sort((a, b) => b.count - a.count)
               .slice(0, 5);
             
-            // Get stock summary
             db.all(
               `SELECT 
                  SUM(total_allocated) as total_allocated,
@@ -540,7 +522,6 @@ app.get('/', requireAuth, requireRole('admin', 'operator'), logActivity('view_da
                   active_partners: 0
                 };
                 
-                // Get advanced analytics data with fallback
                 getAdvancedAnalytics((analyticsData) => {
                   try {
                     res.render('dashboard', { 
@@ -602,7 +583,6 @@ function getAdvancedAnalytics(callback) {
     }
   };
   
-  // Get daily trends for last 30 days with partner data
   db.all(`
     SELECT 
       DATE(p.created_at) as date,
@@ -617,13 +597,9 @@ function getAdvancedAnalytics(callback) {
     GROUP BY DATE(p.created_at)
     ORDER BY date DESC
   `, (err, dailyTrends) => {
-    if (err) {
-      console.error('Error fetching daily trends:', err);
-      dailyTrends = [];
-    }
+    if (err) console.error('Error fetching daily trends:', err);
     analytics.dailyTrends = dailyTrends || [];
     
-    // Get hourly distribution
     db.all(`
       SELECT 
         strftime('%H', created_at) as hour,
@@ -633,13 +609,9 @@ function getAdvancedAnalytics(callback) {
       GROUP BY strftime('%H', created_at)
       ORDER BY hour
     `, (err, hourlyDistribution) => {
-      if (err) {
-        console.error('Error fetching hourly distribution:', err);
-        hourlyDistribution = [];
-      }
+      if (err) console.error('Error fetching hourly distribution:', err);
       analytics.hourlyDistribution = hourlyDistribution || [];
       
-      // Get partner performance
       db.all(`
         SELECT 
           pt.name as partner_name,
@@ -660,13 +632,9 @@ function getAdvancedAnalytics(callback) {
         ORDER BY total_protocols DESC
         LIMIT 10
       `, (err, partnerPerformance) => {
-        if (err) {
-          console.error('Error fetching partner performance:', err);
-          partnerPerformance = [];
-        }
+        if (err) console.error('Error fetching partner performance:', err);
         analytics.partnerPerformance = partnerPerformance || [];
         
-        // Get province performance
         db.all(`
           SELECT 
             p.province_code,
@@ -685,13 +653,9 @@ function getAdvancedAnalytics(callback) {
           ORDER BY count DESC
           LIMIT 10
         `, (err, provincePerformance) => {
-          if (err) {
-            console.error('Error fetching province performance:', err);
-            provincePerformance = [];
-          }
+          if (err) console.error('Error fetching province performance:', err);
           analytics.provincePerformance = provincePerformance || [];
           
-          // Get status trends over time
           db.all(`
             SELECT 
               DATE(created_at) as date,
@@ -702,62 +666,45 @@ function getAdvancedAnalytics(callback) {
             GROUP BY DATE(created_at), status
             ORDER BY date DESC, status
           `, (err, statusTrends) => {
-          if (err) {
-            console.error('Error fetching status trends:', err);
-            statusTrends = [];
-          }
-          analytics.statusTrends = statusTrends || [];
-          
-          // Get comprehensive metrics
-          db.get(`
-            SELECT 
-              COUNT(p.id) as total_protocols,
-              COUNT(DISTINCT p.province_code) as unique_provinces,
-              COUNT(DISTINCT p.partner_id) as active_partners,
-              ROUND(COUNT(p.id) * 1.0 / NULLIF(COUNT(DISTINCT DATE(p.created_at)), 0), 2) as avg_per_day,
-              ROUND(
-                SUM(CASE WHEN p.status = 'terpakai' THEN 1 ELSE 0 END) * 100.0 / NULLIF(COUNT(p.id), 0), 2
-              ) as completion_rate,
-              MIN(p.created_at) as first_protocol,
-              MAX(p.created_at) as latest_protocol
-            FROM protocols p
-            LEFT JOIN partners pt ON p.partner_id = pt.id
-          `, (err, metrics) => {
-            if (err) {
-              console.error('Error fetching metrics:', err);
-              metrics = {
-                total_protocols: 0,
-                unique_provinces: 0,
-                active_partners: 0,
-                avg_per_day: 0,
-                completion_rate: 0,
-                first_protocol: null,
-                latest_protocol: null
-              };
-            }
-            analytics.metrics = metrics || analytics.metrics;
+            if (err) console.error('Error fetching status trends:', err);
+            analytics.statusTrends = statusTrends || [];
             
-            callback(analytics);
+            db.get(`
+              SELECT 
+                COUNT(p.id) as total_protocols,
+                COUNT(DISTINCT p.province_code) as unique_provinces,
+                COUNT(DISTINCT p.partner_id) as active_partners,
+                ROUND(COUNT(p.id) * 1.0 / NULLIF(COUNT(DISTINCT DATE(p.created_at)), 0), 2) as avg_per_day,
+                ROUND(
+                  SUM(CASE WHEN p.status = 'terpakai' THEN 1 ELSE 0 END) * 100.0 / NULLIF(COUNT(p.id), 0), 2
+                ) as completion_rate,
+                MIN(p.created_at) as first_protocol,
+                MAX(p.created_at) as latest_protocol
+              FROM protocols p
+              LEFT JOIN partners pt ON p.partner_id = pt.id
+            `, (err, metrics) => {
+              if (err) console.error('Error fetching metrics:', err);
+              analytics.metrics = metrics || analytics.metrics;
+              callback(analytics);
+            });
           });
         });
       });
     });
   });
-  });
 }
 
+// Login routes
 app.get('/login', (req, res) => {
-  // Check if already logged in - be more specific
   if (req.session && req.session.user === ADMIN_USER && req.session.userId === 0) {
-    return res.redirect('/');
+    return res.redirect('/dashboard');
   }
   if (req.session && req.session.userId && req.session.userId > 0) {
-    return res.redirect('/');
+    return res.redirect('/dashboard');
   }
   res.render('login', { error: null });
 });
 
-// Test route to debug
 app.get('/test-session', (req, res) => {
   res.json({
     session: req.session,
@@ -766,7 +713,6 @@ app.get('/test-session', (req, res) => {
   });
 });
 
-// Development route to reset rate limiting (remove in production)
 app.get('/reset-limits', (req, res) => {
   authLimiter.resetKey(req.ip);
   res.json({ 
@@ -780,25 +726,24 @@ app.post('/login', authLimiter, (req, res) => {
   const { username, password } = req.body;
   
   console.log('Login attempt:', { username, hasPassword: !!password });
-  console.log('Current session before login:', req.session);
   
-  // Legacy admin login (backwards compatibility)
+  // Legacy admin login
   if (username === ADMIN_USER && password === ADMIN_PASS) {
     console.log('Legacy admin login successful');
     req.session.user = ADMIN_USER;
-    req.session.userId = 0; // Legacy admin ID
-    console.log('Session after legacy login:', req.session);
-    return res.redirect('/'); // Legacy admin always goes to dashboard
+    req.session.userId = 0;
+    return res.redirect('/dashboard');
   }
   
-  // New user authentication
+  // Validate input
   if (!username || !password) {
-    console.log('Missing username or password');
     return res.render('login', { error: 'Username dan password harus diisi' });
   }
   
+  // New user authentication
   db.get('SELECT * FROM users WHERE username = ? AND is_active = 1', [username], (err, user) => {
     if (err) {
+      console.error('Database error during login:', err);
       return res.render('login', { error: 'Database error' });
     }
     
@@ -806,7 +751,7 @@ app.post('/login', authLimiter, (req, res) => {
       return res.render('login', { error: 'Invalid username or password' });
     }
     
-    // Update last login with WIB timestamp
+    // Update last login
     db.run('UPDATE users SET last_login = ? WHERE id = ?', [getWIBTimestamp(), user.id]);
     
     // Log login activity
@@ -820,24 +765,29 @@ app.post('/login', authLimiter, (req, res) => {
     
     // Set session
     req.session.userId = user.id;
-    req.session.user = user.username; // For backwards compatibility
+    req.session.user = user.username;
     
     // Redirect based on role
     if (user.role === 'distribusi') {
       return res.redirect('/scanner');
     }
     
-    res.redirect('/');
+    res.redirect('/dashboard');
   });
+});
+
+app.get('/logout', (req, res) => {
+  req.session.destroy(() => res.redirect('/login'));
 });
 
 // User Management Routes
 app.get('/users', requireAuth, requireRole('admin'), (req, res) => {
-  // Get all users
   db.all('SELECT * FROM users ORDER BY created_at DESC', (err, users) => {
-    if (err) users = [];
+    if (err) {
+      console.error('Error fetching users:', err);
+      users = [];
+    }
     
-    // Get recent activity
     db.all(`
       SELECT al.*, u.username 
       FROM activity_logs al 
@@ -845,7 +795,10 @@ app.get('/users', requireAuth, requireRole('admin'), (req, res) => {
       ORDER BY al.created_at DESC 
       LIMIT 20
     `, (err, recentActivity) => {
-      if (err) recentActivity = [];
+      if (err) {
+        console.error('Error fetching activity logs:', err);
+        recentActivity = [];
+      }
       
       res.render('users', { 
         user: req.user, 
@@ -882,6 +835,11 @@ app.post('/users', requireAuth, requireRole('admin'), logActivity('create_user',
   
   // Check if username or email already exists
   db.get('SELECT id FROM users WHERE username = ? OR email = ?', [username, email], (err, existing) => {
+    if (err) {
+      console.error('Error checking existing user:', err);
+      return res.status(500).json({ error: 'Database error' });
+    }
+    
     if (existing) {
       return res.status(400).json({ error: 'Username or email already exists' });
     }
@@ -896,6 +854,7 @@ app.post('/users', requireAuth, requireRole('admin'), logActivity('create_user',
       [username, email, passwordHash, full_name, role, req.user.id],
       function(err) {
         if (err) {
+          console.error('Error creating user:', err);
           return res.status(500).json({ error: 'Failed to create user' });
         }
         res.redirect('/users');
@@ -907,7 +866,17 @@ app.post('/users', requireAuth, requireRole('admin'), logActivity('create_user',
 app.post('/users/:id/toggle-status', requireAuth, requireRole('admin'), (req, res) => {
   const { id } = req.params;
   
+  // Prevent disabling own account
+  if (parseInt(id) === req.user.id) {
+    return res.status(400).json({ error: 'Cannot disable your own account' });
+  }
+  
   db.get('SELECT is_active, username FROM users WHERE id = ?', [id], (err, user) => {
+    if (err) {
+      console.error('Error fetching user:', err);
+      return res.status(500).json({ error: 'Database error' });
+    }
+    
     if (!user) {
       return res.status(404).json({ error: 'User not found' });
     }
@@ -916,14 +885,16 @@ app.post('/users/:id/toggle-status', requireAuth, requireRole('admin'), (req, re
     
     db.run('UPDATE users SET is_active = ? WHERE id = ?', [newStatus, id], (err) => {
       if (err) {
+        console.error('Error updating user status:', err);
         return res.status(500).json({ error: 'Failed to update user status' });
       }
       
       // Log activity
       db.run(
-        `INSERT INTO activity_logs (user_id, action, target_type, target_id, details)
-         VALUES (?, ?, ?, ?, ?)`,
-        [req.user.id, newStatus ? 'activate_user' : 'deactivate_user', 'user', id, `User ${user.username} ${newStatus ? 'activated' : 'deactivated'} by admin`]
+        `INSERT INTO activity_logs (user_id, action, target_type, target_id, details, created_at)
+         VALUES (?, ?, ?, ?, ?, ?)`,
+        [req.user.id, newStatus ? 'activate_user' : 'deactivate_user', 'user', id, 
+         `User ${user.username} ${newStatus ? 'activated' : 'deactivated'}`, getWIBTimestamp()]
       );
       
       res.json({ 
@@ -938,7 +909,6 @@ app.post('/users/:id/reset-password', requireAuth, requireRole('admin'), (req, r
   const { id } = req.params;
   const { newPassword } = req.body;
   
-  // Validate password
   if (!newPassword || newPassword.length < 6) {
     return res.status(400).json({ error: 'Password must be at least 6 characters long' });
   }
@@ -947,14 +917,16 @@ app.post('/users/:id/reset-password', requireAuth, requireRole('admin'), (req, r
   
   db.run('UPDATE users SET password_hash = ? WHERE id = ?', [passwordHash, id], (err) => {
     if (err) {
+      console.error('Error resetting password:', err);
       return res.status(500).json({ error: 'Failed to reset password' });
     }
     
     // Log activity
     db.run(
-      `INSERT INTO activity_logs (user_id, action, target_type, target_id, details)
-       VALUES (?, ?, ?, ?, ?)`,
-      [req.user.id, 'reset_password', 'user', id, `Password reset by admin (${req.user.username})`]
+      `INSERT INTO activity_logs (user_id, action, target_type, target_id, details, created_at)
+       VALUES (?, ?, ?, ?, ?, ?)`,
+      [req.user.id, 'reset_password', 'user', id, 
+       `Password reset by admin (${req.user.username})`, getWIBTimestamp()]
     );
     
     res.json({ 
@@ -962,10 +934,6 @@ app.post('/users/:id/reset-password', requireAuth, requireRole('admin'), (req, r
       message: 'Password reset successfully' 
     });
   });
-});
-
-app.get('/logout', (req, res) => {
-  req.session.destroy(() => res.redirect('/login'));
 });
 
 // Partners Management Routes
@@ -983,7 +951,7 @@ app.get('/partners', requireAuth, requireRole('admin', 'operator'), (req, res) =
       }
       
       res.render('partners', { 
-        user: req.session.user || req.user, 
+        user: req.user, 
         partners: partners || [],
         provinces: provinces
       });
@@ -1008,8 +976,8 @@ app.post('/partners', requireAuth, requireRole('admin', 'operator'), logActivity
   }
   
   db.run(
-    'INSERT INTO partners (name, type, code, province_code, address, phone, email, created_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-    [name, type, code.toUpperCase(), province_code, address, phone, email, req.session.userId],
+    'INSERT INTO partners (name, type, code, province_code, address, phone, email, created_by, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+    [name, type, code.toUpperCase(), province_code, address, phone, email, req.user.id, getWIBTimestamp()],
     function(err) {
       if (err) {
         if (err.message.includes('UNIQUE constraint failed')) {
@@ -1019,10 +987,10 @@ app.post('/partners', requireAuth, requireRole('admin', 'operator'), logActivity
         return res.status(500).send('Database error');
       }
       
-      // Initialize stock tracking for new partner
+      // Initialize stock tracking
       db.run(
-        'INSERT INTO stock_tracking (partner_id, total_allocated, total_used, total_available) VALUES (?, 0, 0, 0)',
-        [this.lastID],
+        'INSERT INTO stock_tracking (partner_id, total_allocated, total_used, total_available, last_updated) VALUES (?, 0, 0, 0, ?)',
+        [this.lastID, getWIBTimestamp()],
         (stockErr) => {
           if (stockErr) {
             console.error('Error initializing stock tracking:', stockErr);
@@ -1038,7 +1006,12 @@ app.post('/partners/:id/toggle-status', requireAuth, requireRole('admin'), (req,
   const partnerId = req.params.id;
   
   db.get('SELECT is_active FROM partners WHERE id = ?', [partnerId], (err, partner) => {
-    if (err || !partner) {
+    if (err) {
+      console.error('Error fetching partner:', err);
+      return res.status(500).send('Database error');
+    }
+    
+    if (!partner) {
       return res.status(404).send('Mitra tidak ditemukan');
     }
     
@@ -1058,7 +1031,7 @@ app.post('/partners/:id/toggle-status', requireAuth, requireRole('admin'), (req,
   });
 });
 
-// API endpoint to get partners by province (for AJAX)
+// API endpoint to get partners by province
 app.get('/api/partners/:provinceCode', requireAuth, (req, res) => {
   const provinceCode = req.params.provinceCode;
   
@@ -1079,7 +1052,6 @@ app.get('/api/partners/:provinceCode', requireAuth, (req, res) => {
 app.post('/api/partners', requireAuth, requireRole('admin', 'operator'), (req, res) => {
   const { name, type, code, province_code, phone, address } = req.body;
   
-  // Validate input
   if (!name || !type || !code || !province_code) {
     return res.status(400).json({ error: 'Nama, jenis, kode, dan provinsi harus diisi' });
   }
@@ -1093,8 +1065,8 @@ app.post('/api/partners', requireAuth, requireRole('admin', 'operator'), (req, r
   }
   
   db.run(
-    'INSERT INTO partners (name, type, code, province_code, address, phone, created_by) VALUES (?, ?, ?, ?, ?, ?, ?)',
-    [name, type, code.toUpperCase(), province_code, address, phone, req.session.userId],
+    'INSERT INTO partners (name, type, code, province_code, address, phone, created_by, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+    [name, type, code.toUpperCase(), province_code, address, phone, req.user.id, getWIBTimestamp()],
     function(err) {
       if (err) {
         if (err.message.includes('UNIQUE constraint failed')) {
@@ -1104,10 +1076,10 @@ app.post('/api/partners', requireAuth, requireRole('admin', 'operator'), (req, r
         return res.status(500).json({ error: 'Database error' });
       }
       
-      // Initialize stock tracking for new partner
+      // Initialize stock tracking
       db.run(
-        'INSERT INTO stock_tracking (partner_id, total_allocated, total_used, total_available) VALUES (?, 0, 0, 0)',
-        [this.lastID],
+        'INSERT INTO stock_tracking (partner_id, total_allocated, total_used, total_available, last_updated) VALUES (?, 0, 0, 0, ?)',
+        [this.lastID, getWIBTimestamp()],
         (stockErr) => {
           if (stockErr) {
             console.error('Error initializing stock tracking:', stockErr);
@@ -1138,9 +1110,9 @@ app.get('/api/stock', requireAuth, (req, res) => {
        p.type,
        p.code,
        p.province_code,
-       st.total_allocated,
-       st.total_used,
-       st.total_available,
+       COALESCE(st.total_allocated, 0) as total_allocated,
+       COALESCE(st.total_used, 0) as total_used,
+       COALESCE(st.total_available, 0) as total_available,
        st.last_updated
      FROM partners p
      LEFT JOIN stock_tracking st ON p.id = st.partner_id
@@ -1156,7 +1128,7 @@ app.get('/api/stock', requireAuth, (req, res) => {
   );
 });
 
-// Create protocol form (admin and operator only)
+// Create protocol
 app.post('/protocols', requireAuth, requireRole('admin', 'operator'), logActivity('create_protocol'), (req, res) => {
   const { province, partner_id, quantity } = req.body;
   
@@ -1174,25 +1146,27 @@ app.post('/protocols', requireAuth, requireRole('admin', 'operator'), logActivit
   
   // Verify partner exists and is active
   db.get('SELECT * FROM partners WHERE id = ? AND is_active = 1', [partner_id], (err, partner) => {
-    if (err || !partner) {
+    if (err) {
+      console.error('Error fetching partner:', err);
+      return res.status(500).send('Database error');
+    }
+    
+    if (!partner) {
       return res.status(400).send('Invalid or inactive partner');
     }
     
-    // Build code base: YYYYMMDD + province code (3 chars) + partner code + timestamp
-    // Use WIB timezone
+    // Build code base using WIB timezone
     const now = getWIBDate();
     const year = now.getFullYear();
     const month = String(now.getMonth() + 1).padStart(2, '0');
     const day = String(now.getDate()).padStart(2, '0');
     const dateStr = `${year}${month}${day}`;
-    
-    // Add timestamp to ensure uniqueness (last 6 digits of timestamp)
     const timestamp = Date.now().toString().slice(-6);
     const codeBase = `${dateStr}${province}${partner.code}${timestamp}`;
     
     // Create protocols in batch
     const protocols = [];
-    const createdAt = getWIBTimestamp(); // Use WIB timestamp
+    const createdAt = getWIBTimestamp();
     const stmt = db.prepare(
       'INSERT INTO protocols (code, province_code, partner_id, created_at, status, created_by) VALUES (?, ?, ?, ?, ?, ?)'
     );
@@ -1201,7 +1175,7 @@ app.post('/protocols', requireAuth, requireRole('admin', 'operator'), logActivit
       const code = qty === 1 ? codeBase : `${codeBase}_${String(i).padStart(3, '0')}`;
       protocols.push(code);
       
-      stmt.run([code, province, partner_id, createdAt, 'created', req.session.userId || 0], function(err) {
+      stmt.run([code, province, partner_id, createdAt, 'created', req.user.id], function(err) {
         if (err) {
           console.error('Error creating protocol:', err);
         }
@@ -1214,7 +1188,7 @@ app.post('/protocols', requireAuth, requireRole('admin', 'operator'), logActivit
         return res.status(500).send('Database error');
       }
       
-      // Update stock tracking with quantity
+      // Update stock tracking
       db.run(
         `UPDATE stock_tracking 
          SET total_allocated = total_allocated + ?,
@@ -1235,7 +1209,7 @@ app.post('/protocols', requireAuth, requireRole('admin', 'operator'), logActivit
             province: province
           });
           
-          res.redirect('/?success=' + encodeURIComponent(`${qty} protocol(s) created successfully! Codes: ${protocols.join(', ')}`));
+          res.redirect('/dashboard?success=' + encodeURIComponent(`${qty} protocol(s) created successfully!`));
         }
       );
     });
@@ -1247,26 +1221,36 @@ app.post('/protocols/:id/status', requireAuth, requireRole('admin', 'operator'),
   const { id } = req.params;
   const { status } = req.body;
   
+  if (!['created', 'delivered', 'terpakai'].includes(status)) {
+    return res.status(400).send('Invalid status');
+  }
+  
   // Get current protocol data
   db.get('SELECT * FROM protocols WHERE id = ?', [id], (err, oldProtocol) => {
-    if (err || !oldProtocol) {
+    if (err) {
+      console.error('Error fetching protocol:', err);
+      return res.status(500).send('Database error');
+    }
+    
+    if (!oldProtocol) {
       return res.status(404).send('Protocol not found');
     }
     
-    db.run('UPDATE protocols SET status = ?, updated_by = ? WHERE id = ?', [status, req.session.userId || 0, id], function (err) {
-      if (err) return res.status(500).send('Failed to update status');
+    db.run('UPDATE protocols SET status = ?, updated_by = ? WHERE id = ?', 
+      [status, req.user.id, id], function (err) {
+      if (err) {
+        console.error('Error updating status:', err);
+        return res.status(500).send('Failed to update status');
+      }
       
       // Update stock tracking if status changed to/from 'terpakai'
       if (oldProtocol.partner_id) {
         let stockChange = 0;
         
-        // If changing from non-terpakai to terpakai
         if (oldProtocol.status !== 'terpakai' && status === 'terpakai') {
-          stockChange = 1; // Increase used count
-        }
-        // If changing from terpakai to non-terpakai
-        else if (oldProtocol.status === 'terpakai' && status !== 'terpakai') {
-          stockChange = -1; // Decrease used count
+          stockChange = 1;
+        } else if (oldProtocol.status === 'terpakai' && status !== 'terpakai') {
+          stockChange = -1;
         }
         
         if (stockChange !== 0) {
@@ -1296,67 +1280,69 @@ app.post('/protocols/:id/status', requireAuth, requireRole('admin', 'operator'),
         }
       });
       
-      res.redirect('/');
+      res.redirect('/dashboard');
     });
   });
 });
 
-// Barcode image endpoint (QR Code for better mobile scanning)
+// Barcode endpoints (QR Code)
 app.get('/barcode/:code.png', ensureAuth, (req, res) => {
   const { code } = req.params;
   try {
     bwipjs.toBuffer({
-      bcid: 'qrcode',       // Changed from code128 to qrcode
+      bcid: 'qrcode',
       text: code,
       scale: 4,
-      // QR-specific options. Do not pass width/height which are for 1D barcodes.
-      eclevel: 'M',         // Error correction level (L,M,Q,H)
+      eclevel: 'M',
     }, function (err, png) {
       if (err) {
-        console.error('bwip-js qrcode error:', err);
-        return res.status(500).send('Barcode generation error: ' + (err.message || err));
+        console.error('QR code generation error:', err);
+        return res.status(500).send('QR code generation error');
       }
       res.type('png');
       res.send(png);
     });
   } catch (e) {
-    console.error('Barcode generation exception:', e);
-    res.status(500).send('Barcode generation exception: ' + (e.message || e));
+    console.error('QR code generation exception:', e);
+    res.status(500).send('QR code generation exception');
   }
 });
 
-// Download barcode endpoint (QR Code for better mobile scanning)
 app.get('/download/barcode/:code.png', ensureAuth, (req, res) => {
   const { code } = req.params;
   try {
     bwipjs.toBuffer({
-      bcid: 'qrcode',       // Changed from code128 to qrcode
+      bcid: 'qrcode',
       text: code,
-      scale: 8,             // Larger scale for download
+      scale: 8,
       eclevel: 'M',
     }, function (err, png) {
       if (err) {
-        console.error('bwip-js qrcode download error:', err);
-        return res.status(500).send('Barcode generation error: ' + (err.message || err));
+        console.error('QR code download error:', err);
+        return res.status(500).send('QR code generation error');
       }
       res.setHeader('Content-Disposition', `attachment; filename="qrcode-${code}.png"`);
       res.type('png');
       res.send(png);
     });
   } catch (e) {
-    console.error('Barcode generation exception (download):', e);
-    res.status(500).send('Barcode generation exception: ' + (e.message || e));
+    console.error('QR code generation exception:', e);
+    res.status(500).send('QR code generation exception');
   }
 });
 
-// Lookup code endpoint - returns JSON (authenticated users only)
+// Lookup code endpoint
 app.get('/scan/:code', requireAuth, (req, res) => {
   const { code } = req.params;
-  db.get('SELECT * FROM protocols WHERE code = ?', [code], (err, row) => {
-    if (err) return res.status(500).json({ error: 'DB error' });
+  db.get('SELECT p.*, pt.name as partner_name, pt.type as partner_type FROM protocols p LEFT JOIN partners pt ON p.partner_id = pt.id WHERE p.code = ?', 
+    [code], (err, row) => {
+    if (err) {
+      console.error('Error scanning code:', err);
+      return res.status(500).json({ error: 'Database error' });
+    }
     if (!row) return res.status(404).json({ error: 'Not found' });
     
-    // Format the response with readable time
+    // Format the response
     const response = {
       ...row,
       created_at_formatted: new Date(row.created_at).toLocaleString('id-ID', { 
@@ -1370,40 +1356,72 @@ app.get('/scan/:code', requireAuth, (req, res) => {
   });
 });
 
-// Scanner page (accessible by all authenticated users)
+// Scanner page
 app.get('/scanner', requireAuth, (req, res) => {
   res.render('scanner', { user: req.user });
 });
 
-// API endpoint to confirm status change from scanner (all authenticated users)
+// API endpoint to confirm status change from scanner
 app.post('/api/confirm-usage/:code', requireAuth, (req, res) => {
   const { code } = req.params;
-  const { action } = req.body; // 'mark_terpakai' or 'mark_delivered'
+  const { action } = req.body;
   
-  // First check if code exists
-  db.get('SELECT * FROM protocols WHERE code = ?', [code], (err, row) => {
-    if (err) return res.status(500).json({ error: 'Database error' });
+  // Validate action
+  if (!['mark_terpakai', 'mark_delivered'].includes(action)) {
+    return res.status(400).json({ error: 'Invalid action' });
+  }
+  
+  db.get('SELECT p.*, pt.name as partner_name FROM protocols p LEFT JOIN partners pt ON p.partner_id = pt.id WHERE p.code = ?', 
+    [code], (err, row) => {
+    if (err) {
+      console.error('Error fetching protocol:', err);
+      return res.status(500).json({ error: 'Database error' });
+    }
     if (!row) return res.status(404).json({ error: 'Code not found' });
     
-    let newStatus = 'terpakai';
-    if (action === 'mark_delivered') newStatus = 'delivered';
+    const newStatus = action === 'mark_delivered' ? 'delivered' : 'terpakai';
+    const oldStatus = row.status;
     
     // Update status
-    db.run('UPDATE protocols SET status = ? WHERE code = ?', [newStatus, code], function (err) {
-      if (err) return res.status(500).json({ error: 'Failed to update status' });
-      
-      // Log activity
-      if (req.user && req.user.id) {
-        const ip = req.ip || req.connection.remoteAddress;
-        const userAgent = req.get('User-Agent');
-        db.run(
-          `INSERT INTO activity_logs (user_id, action, target_type, target_id, details, ip_address, user_agent)
-           VALUES (?, ?, ?, ?, ?, ?, ?)`,
-          [req.user.id, `scan_${newStatus}`, 'protocol', code, `Scanned and marked as ${newStatus}`, ip, userAgent]
-        );
+    db.run('UPDATE protocols SET status = ?, updated_by = ? WHERE code = ?', 
+      [newStatus, req.user.id, code], function (err) {
+      if (err) {
+        console.error('Error updating status:', err);
+        return res.status(500).json({ error: 'Failed to update status' });
       }
       
-      // Emit real-time update to dashboard
+      // Update stock if changing to/from terpakai
+      if (row.partner_id) {
+        let stockChange = 0;
+        if (oldStatus !== 'terpakai' && newStatus === 'terpakai') {
+          stockChange = 1;
+        } else if (oldStatus === 'terpakai' && newStatus !== 'terpakai') {
+          stockChange = -1;
+        }
+        
+        if (stockChange !== 0) {
+          db.run(
+            `UPDATE stock_tracking 
+             SET total_used = total_used + ?,
+                 total_available = total_available - ?,
+                 last_updated = ? 
+             WHERE partner_id = ?`,
+            [stockChange, stockChange, getWIBTimestamp(), row.partner_id]
+          );
+        }
+      }
+      
+      // Log activity
+      const ip = req.ip || req.connection.remoteAddress;
+      const userAgent = req.get('User-Agent');
+      db.run(
+        `INSERT INTO activity_logs (user_id, action, target_type, target_id, details, ip_address, user_agent, created_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+        [req.user.id, `scan_${newStatus}`, 'protocol', code, 
+         `Scanned and marked as ${newStatus}`, ip, userAgent, getWIBTimestamp()]
+      );
+      
+      // Emit real-time update
       io.emit('status_updated', { 
         code: code, 
         newStatus: newStatus,
@@ -1421,38 +1439,51 @@ app.post('/api/confirm-usage/:code', requireAuth, (req, res) => {
 
 // Socket.io for real-time updates
 io.on('connection', (socket) => {
-    console.log('Client connected for real-time updates');
-    
-    socket.on('disconnect', () => {
-        console.log('Client disconnected');
-    });
+  console.log('Client connected for real-time updates');
+  
+  socket.on('disconnect', () => {
+    console.log('Client disconnected');
+  });
 });
 
-// Start server (using existing server instance)
-// Listen on 0.0.0.0 to bind to all network interfaces
+// Start server
 const PORT = process.env.PORT || 8080;
 
 server.listen(PORT, '0.0.0.0', () => {
-    console.log(`Server listening on http://localhost:${PORT}`);
-    console.log(`Server also available on http://127.0.0.1:${PORT}`);
-    console.log(`Process ID: ${process.pid}`);
-    console.log(`Server started at: ${new Date().toISOString()}`);
+  console.log(`Server listening on http://localhost:${PORT}`);
+  console.log(`Server also available on http://127.0.0.1:${PORT}`);
+  console.log(`Process ID: ${process.pid}`);
+  console.log(`Server started at: ${new Date().toISOString()}`);
 });
 
 // Error handling for server
 server.on('error', (err) => {
-    console.error('Server error:', err);
-    if (err.code === 'EADDRINUSE') {
-        console.error(`Port ${PORT} is already in use`);
-        process.exit(1);
-    }
+  console.error('Server error:', err);
+  if (err.code === 'EADDRINUSE') {
+    console.error(`Port ${PORT} is already in use`);
+    process.exit(1);
+  }
 });
 
 // Graceful shutdown
 process.on('SIGTERM', () => {
-    console.log('SIGTERM received. Shutting down gracefully...');
-    server.close(() => {
-        console.log('Server closed');
-        process.exit(0);
+  console.log('SIGTERM received. Shutting down gracefully...');
+  server.close(() => {
+    console.log('Server closed');
+    db.close((err) => {
+      if (err) console.error('Error closing database:', err);
+      process.exit(0);
     });
+  });
+});
+
+process.on('SIGINT', () => {
+  console.log('SIGINT received. Shutting down gracefully...');
+  server.close(() => {
+    console.log('Server closed');
+    db.close((err) => {
+      if (err) console.error('Error closing database:', err);
+      process.exit(0);
+    });
+  });
 });
