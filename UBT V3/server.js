@@ -10,7 +10,6 @@ const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const validator = require('validator');
 const rateLimit = require('express-rate-limit');
-const dashboardRoutes = require('./routes/dashboard');
 
 // Add socket.io for real-time updates
 const { Server } = require('socket.io');
@@ -23,11 +22,10 @@ const io = new Server(server);
 // Trust proxy for Nginx reverse proxy
 app.set('trust proxy', 1);
 
-// Default to 3000 so URLs like http://localhost:3000 work out of the box
 const JWT_SECRET = process.env.JWT_SECRET || 'your-super-secret-jwt-key-change-in-production';
 
 // Timezone Helper Functions for WIB (GMT+7)
-const WIB_OFFSET = 7 * 60 * 60 * 1000; // 7 hours in milliseconds
+const WIB_OFFSET = 7 * 60 * 60 * 1000;
 
 function getWIBDate(date = new Date()) {
   const utcTime = date.getTime();
@@ -49,7 +47,7 @@ function getWIBTimestamp() {
   return formatWIBTimestamp();
 }
 
-// Global error logging to diagnose crashes - SINGLE SET ONLY
+// Global error logging - SINGLE SET ONLY
 const errorLogPath = path.join(__dirname, 'error.log');
 function logFatal(prefix, err) {
   const line = `[${formatWIBTimestamp()}] ${prefix}: ${err && err.stack ? err.stack : err}\n`;
@@ -60,7 +58,7 @@ function logFatal(prefix, err) {
 process.on('uncaughtException', (err) => logFatal('uncaughtException', err));
 process.on('unhandledRejection', (reason, promise) => logFatal('unhandledRejection', reason));
 
-// Rate limiting with improved configuration
+// Rate limiting
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 15,
@@ -82,7 +80,6 @@ app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Manifest route
 app.get('/manifest.json', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'manifest.json'));
 });
@@ -91,31 +88,27 @@ app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.json());
 app.use(cors({ origin: process.env.PUBLIC_FRONTEND_ORIGIN || '*' }));
 
-// Single health check endpoint (no auth)
-app.get('/healthz', (req, res) => {
-  res.json({ status: 'ok', pid: process.pid, uptime: process.uptime(), port: PORT });
-});
-
-// Apply rate limiting to specific routes
+// Apply rate limiting
 app.use('/api/', apiLimiter);
 
-// Improved session configuration
+// Session configuration - FIXED for development
 app.use(session({
   secret: process.env.SESSION_SECRET || 'replace-with-secure-secret-in-production',
   resave: false,
-  saveUninitialized: false, // Changed to false for better security
+  saveUninitialized: true, // true untuk development
   cookie: {
-    secure: process.env.NODE_ENV === 'production',
+    secure: false, // false untuk HTTP development
     httpOnly: true,
     sameSite: 'lax',
     maxAge: 24 * 60 * 60 * 1000,
     path: '/',
   },
   name: 'connect.sid',
-  proxy: true
+  proxy: true,
+  rolling: true
 }));
 
-// Debug middleware - log all requests
+// Debug middleware
 app.use((req, res, next) => {
   if (!req.path.startsWith('/icons/') && !req.path.startsWith('/sw.js') && !req.path.match(/\.(css|js|png|jpg|ico)$/)) {
     console.log(`[${formatWIBTimestamp()}] ${req.method} ${req.path} - Session: ${req.session?.userId || 'none'} - IP: ${req.ip}`);
@@ -123,7 +116,7 @@ app.use((req, res, next) => {
   next();
 });
 
-// Add timezone helper to all views
+// Timezone helpers
 app.use((req, res, next) => {
   res.locals.formatDate = (dateString) => {
     if (!dateString) return '-';
@@ -148,16 +141,15 @@ app.use((req, res, next) => {
   next();
 });
 
-// Simple DB (SQLite) in file
+// Database setup
 const dbDir = process.env.DATA_DIR || process.env.DATA_PATH || path.join(__dirname);
-try { fs.mkdirSync(dbDir, { recursive: true }); } catch (e) { /* ignore */ }
+try { fs.mkdirSync(dbDir, { recursive: true }); } catch (e) {}
 const dbPath = path.join(dbDir, 'data.db');
 console.log('Using SQLite DB at:', dbPath);
 const db = new sqlite3.Database(dbPath);
 
 // Database initialization
 db.serialize(() => {
-  // Partners table
   db.run(
     `CREATE TABLE IF NOT EXISTS partners (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -176,7 +168,6 @@ db.serialize(() => {
     )`
   );
   
-  // Check if partner_id column exists
   db.all("PRAGMA table_info(protocols)", (err, columns) => {
     if (!err && columns) {
       const hasPartnerId = columns.some(col => col.name === 'partner_id');
@@ -193,7 +184,6 @@ db.serialize(() => {
     }
   });
   
-  // Protocols table
   db.run(
     `CREATE TABLE IF NOT EXISTS protocols (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -210,7 +200,6 @@ db.serialize(() => {
     )`
   );
   
-  // Stock tracking table
   db.run(
     `CREATE TABLE IF NOT EXISTS stock_tracking (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -223,7 +212,6 @@ db.serialize(() => {
     )`
   );
   
-  // Users table
   db.run(
     `CREATE TABLE IF NOT EXISTS users (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -240,7 +228,6 @@ db.serialize(() => {
     )`
   );
   
-  // Activity logs table
   db.run(
     `CREATE TABLE IF NOT EXISTS activity_logs (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -256,7 +243,6 @@ db.serialize(() => {
     )`
   );
   
-  // Analytics data table
   db.run(
     `CREATE TABLE IF NOT EXISTS analytics_daily (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -271,12 +257,10 @@ db.serialize(() => {
     )`
   );
   
-  // Migrate old roles
   db.run(`UPDATE users SET role = 'operator' WHERE role = 'viewer'`, (err) => {
     if (err) console.log('Role migration note:', err.message);
   });
   
-  // Create default admin user
   db.get("SELECT id FROM users WHERE username = 'admin'", (err, row) => {
     if (!row) {
       const adminPassword = bcrypt.hashSync('admin', 10);
@@ -293,9 +277,8 @@ db.serialize(() => {
 const ADMIN_USER = 'admin';
 const ADMIN_PASS = 'admin';
 
-// Authentication middleware (IMPROVED)
+// Authentication middleware
 function requireAuth(req, res, next) {
-  // Check for legacy admin session
   if (req.session && req.session.user === ADMIN_USER && req.session.userId === 0) {
     req.user = { 
       id: 0, 
@@ -307,7 +290,6 @@ function requireAuth(req, res, next) {
     return next();
   }
   
-  // Check for regular user session
   if (req.session && req.session.userId && req.session.userId > 0) {
     db.get('SELECT * FROM users WHERE id = ? AND is_active = 1', [req.session.userId], (err, user) => {
       if (err || !user) {
@@ -328,14 +310,12 @@ function requireAuth(req, res, next) {
   }
 }
 
-// Legacy auth function (IMPROVED with async handling)
+// Legacy auth function
 function ensureAuth(req, res, next) {
-  // Legacy admin check
   if (req.session && req.session.user === ADMIN_USER) {
     return next();
   }
   
-  // Regular user check
   if (req.session && req.session.userId) {
     db.get('SELECT * FROM users WHERE id = ? AND is_active = 1', [req.session.userId], (err, user) => {
       if (err || !user) {
@@ -349,7 +329,7 @@ function ensureAuth(req, res, next) {
   }
 }
 
-// Role-based authorization middleware
+// Role-based authorization
 function requireRole(...roles) {
   return (req, res, next) => {
     if (!req.user) {
@@ -362,7 +342,7 @@ function requireRole(...roles) {
   };
 }
 
-// Activity logging middleware
+// Activity logging
 function logActivity(action, targetType = 'system', targetId = null, details = null) {
   return (req, res, next) => {
     if (req.session && (req.session.user || req.session.userId !== undefined)) {
@@ -424,11 +404,115 @@ const provinces = [
   { code: 'PPG', name: 'Papua Pegunungan' }
 ];
 
-// Routes
-app.use('/dashboard', dashboardRoutes);
-app.get('/', (req, res) => res.redirect('/dashboard'));
+// Health check (no auth)
+app.get('/healthz', (req, res) => {
+  res.json({ status: 'ok', pid: process.pid, uptime: process.uptime() });
+});
 
-// Dashboard route
+// ===========================================
+// LOGIN ROUTES (MUST BE FIRST)
+// ===========================================
+app.get('/login', (req, res) => {
+  // If already logged in, redirect to dashboard
+  if (req.session && req.session.user === ADMIN_USER && req.session.userId === 0) {
+    return res.redirect('/dashboard');
+  }
+  if (req.session && req.session.userId && req.session.userId > 0) {
+    return res.redirect('/dashboard');
+  }
+  res.render('login', { error: null });
+});
+
+app.post('/login', authLimiter, (req, res) => {
+  const { username, password } = req.body;
+  
+  console.log('Login attempt:', { username, hasPassword: !!password });
+  
+  // Legacy admin login
+  if (username === ADMIN_USER && password === ADMIN_PASS) {
+    console.log('Legacy admin login successful');
+    req.session.user = ADMIN_USER;
+    req.session.userId = 0;
+    req.session.save((err) => {
+      if (err) console.error('Session save error:', err);
+      return res.redirect('/dashboard');
+    });
+    return;
+  }
+  
+  if (!username || !password) {
+    return res.render('login', { error: 'Username dan password harus diisi' });
+  }
+  
+  db.get('SELECT * FROM users WHERE username = ? AND is_active = 1', [username], (err, user) => {
+    if (err) {
+      console.error('Database error during login:', err);
+      return res.render('login', { error: 'Database error' });
+    }
+    
+    if (!user || !bcrypt.compareSync(password, user.password_hash)) {
+      return res.render('login', { error: 'Invalid username or password' });
+    }
+    
+    db.run('UPDATE users SET last_login = ? WHERE id = ?', [getWIBTimestamp(), user.id]);
+    
+    const ip = req.ip || req.connection.remoteAddress;
+    const userAgent = req.get('User-Agent');
+    db.run(
+      `INSERT INTO activity_logs (user_id, action, ip_address, user_agent, created_at)
+       VALUES (?, ?, ?, ?, ?)`,
+      [user.id, 'login', ip, userAgent, getWIBTimestamp()]
+    );
+    
+    req.session.userId = user.id;
+    req.session.user = user.username;
+    
+    req.session.save((err) => {
+      if (err) console.error('Session save error:', err);
+      
+      if (user.role === 'distribusi') {
+        return res.redirect('/scanner');
+      }
+      
+      res.redirect('/dashboard');
+    });
+  });
+});
+
+app.get('/logout', (req, res) => {
+  req.session.destroy(() => res.redirect('/login'));
+});
+
+app.get('/test-session', (req, res) => {
+  res.json({
+    session: req.session,
+    cookies: req.headers.cookie
+  });
+});
+
+app.get('/reset-limits', (req, res) => {
+  authLimiter.resetKey(req.ip);
+  res.json({ 
+    message: 'Rate limits berhasil direset',
+    ip: req.ip,
+    timestamp: new Date().toISOString()
+  });
+});
+
+// ===========================================
+// ROOT ROUTE (After login routes)
+// ===========================================
+app.get('/', (req, res) => {
+  // Check if logged in
+  if (!req.session || (!req.session.userId && req.session.user !== ADMIN_USER)) {
+    return res.redirect('/login');
+  }
+  res.redirect('/dashboard');
+});
+
+// ===========================================
+// DASHBOARD ROUTE
+// ===========================================
 app.get('/dashboard', requireAuth, requireRole('admin', 'operator'), logActivity('view_dashboard'), (req, res) => {
   const { period, start_date, end_date } = req.query;
   
@@ -571,6 +655,7 @@ function getAdvancedAnalytics(callback) {
     dailyTrends: [],
     hourlyDistribution: [],
     partnerPerformance: [],
+    provincePerformance: [],
     statusTrends: [],
     metrics: {
       total_protocols: 0,
@@ -694,93 +779,9 @@ function getAdvancedAnalytics(callback) {
   });
 }
 
-// Login routes
-app.get('/login', (req, res) => {
-  if (req.session && req.session.user === ADMIN_USER && req.session.userId === 0) {
-    return res.redirect('/dashboard');
-  }
-  if (req.session && req.session.userId && req.session.userId > 0) {
-    return res.redirect('/dashboard');
-  }
-  res.render('login', { error: null });
-});
-
-app.get('/test-session', (req, res) => {
-  res.json({
-    session: req.session,
-    cookies: req.headers.cookie,
-    body: req.body
-  });
-});
-
-app.get('/reset-limits', (req, res) => {
-  authLimiter.resetKey(req.ip);
-  res.json({ 
-    message: 'Rate limits berhasil direset untuk IP Anda',
-    ip: req.ip,
-    timestamp: new Date().toISOString()
-  });
-});
-
-app.post('/login', authLimiter, (req, res) => {
-  const { username, password } = req.body;
-  
-  console.log('Login attempt:', { username, hasPassword: !!password });
-  
-  // Legacy admin login
-  if (username === ADMIN_USER && password === ADMIN_PASS) {
-    console.log('Legacy admin login successful');
-    req.session.user = ADMIN_USER;
-    req.session.userId = 0;
-    return res.redirect('/dashboard');
-  }
-  
-  // Validate input
-  if (!username || !password) {
-    return res.render('login', { error: 'Username dan password harus diisi' });
-  }
-  
-  // New user authentication
-  db.get('SELECT * FROM users WHERE username = ? AND is_active = 1', [username], (err, user) => {
-    if (err) {
-      console.error('Database error during login:', err);
-      return res.render('login', { error: 'Database error' });
-    }
-    
-    if (!user || !bcrypt.compareSync(password, user.password_hash)) {
-      return res.render('login', { error: 'Invalid username or password' });
-    }
-    
-    // Update last login
-    db.run('UPDATE users SET last_login = ? WHERE id = ?', [getWIBTimestamp(), user.id]);
-    
-    // Log login activity
-    const ip = req.ip || req.connection.remoteAddress;
-    const userAgent = req.get('User-Agent');
-    db.run(
-      `INSERT INTO activity_logs (user_id, action, ip_address, user_agent, created_at)
-       VALUES (?, ?, ?, ?, ?)`,
-      [user.id, 'login', ip, userAgent, getWIBTimestamp()]
-    );
-    
-    // Set session
-    req.session.userId = user.id;
-    req.session.user = user.username;
-    
-    // Redirect based on role
-    if (user.role === 'distribusi') {
-      return res.redirect('/scanner');
-    }
-    
-    res.redirect('/dashboard');
-  });
-});
-
-app.get('/logout', (req, res) => {
-  req.session.destroy(() => res.redirect('/login'));
-});
-
-// User Management Routes
+// ===========================================
+// USER MANAGEMENT ROUTES
+// ===========================================
 app.get('/users', requireAuth, requireRole('admin'), (req, res) => {
   db.all('SELECT * FROM users ORDER BY created_at DESC', (err, users) => {
     if (err) {
@@ -812,7 +813,6 @@ app.get('/users', requireAuth, requireRole('admin'), (req, res) => {
 app.post('/users', requireAuth, requireRole('admin'), logActivity('create_user', 'user'), (req, res) => {
   const { username, email, full_name, role, password, confirm_password } = req.body;
   
-  // Validation
   if (!username || !email || !full_name || !role || !password) {
     return res.status(400).json({ error: 'All fields are required' });
   }
@@ -833,7 +833,6 @@ app.post('/users', requireAuth, requireRole('admin'), logActivity('create_user',
     return res.status(400).json({ error: 'Invalid role' });
   }
   
-  // Check if username or email already exists
   db.get('SELECT id FROM users WHERE username = ? OR email = ?', [username, email], (err, existing) => {
     if (err) {
       console.error('Error checking existing user:', err);
@@ -844,10 +843,8 @@ app.post('/users', requireAuth, requireRole('admin'), logActivity('create_user',
       return res.status(400).json({ error: 'Username or email already exists' });
     }
     
-    // Hash password
     const passwordHash = bcrypt.hashSync(password, 10);
     
-    // Create user
     db.run(
       `INSERT INTO users (username, email, password_hash, full_name, role, created_by)
        VALUES (?, ?, ?, ?, ?, ?)`,
@@ -866,7 +863,6 @@ app.post('/users', requireAuth, requireRole('admin'), logActivity('create_user',
 app.post('/users/:id/toggle-status', requireAuth, requireRole('admin'), (req, res) => {
   const { id } = req.params;
   
-  // Prevent disabling own account
   if (parseInt(id) === req.user.id) {
     return res.status(400).json({ error: 'Cannot disable your own account' });
   }
@@ -889,7 +885,6 @@ app.post('/users/:id/toggle-status', requireAuth, requireRole('admin'), (req, re
         return res.status(500).json({ error: 'Failed to update user status' });
       }
       
-      // Log activity
       db.run(
         `INSERT INTO activity_logs (user_id, action, target_type, target_id, details, created_at)
          VALUES (?, ?, ?, ?, ?, ?)`,
@@ -921,7 +916,6 @@ app.post('/users/:id/reset-password', requireAuth, requireRole('admin'), (req, r
       return res.status(500).json({ error: 'Failed to reset password' });
     }
     
-    // Log activity
     db.run(
       `INSERT INTO activity_logs (user_id, action, target_type, target_id, details, created_at)
        VALUES (?, ?, ?, ?, ?, ?)`,
@@ -936,7 +930,9 @@ app.post('/users/:id/reset-password', requireAuth, requireRole('admin'), (req, r
   });
 });
 
-// Partners Management Routes
+// ===========================================
+// PARTNERS MANAGEMENT ROUTES
+// ===========================================
 app.get('/partners', requireAuth, requireRole('admin', 'operator'), (req, res) => {
   db.all(
     `SELECT p.*, u.username as created_by_username, 
@@ -962,7 +958,6 @@ app.get('/partners', requireAuth, requireRole('admin', 'operator'), (req, res) =
 app.post('/partners', requireAuth, requireRole('admin', 'operator'), logActivity('create_partner', 'partner'), (req, res) => {
   const { name, type, code, province_code, address, phone, email } = req.body;
   
-  // Validate input
   if (!name || !type || !code || !province_code) {
     return res.status(400).send('Nama, jenis, kode, dan provinsi harus diisi');
   }
@@ -987,7 +982,6 @@ app.post('/partners', requireAuth, requireRole('admin', 'operator'), logActivity
         return res.status(500).send('Database error');
       }
       
-      // Initialize stock tracking
       db.run(
         'INSERT INTO stock_tracking (partner_id, total_allocated, total_used, total_available, last_updated) VALUES (?, 0, 0, 0, ?)',
         [this.lastID, getWIBTimestamp()],
@@ -1031,7 +1025,9 @@ app.post('/partners/:id/toggle-status', requireAuth, requireRole('admin'), (req,
   });
 });
 
-// API endpoint to get partners by province
+// ===========================================
+// API ENDPOINTS
+// ===========================================
 app.get('/api/partners/:provinceCode', requireAuth, (req, res) => {
   const provinceCode = req.params.provinceCode;
   
@@ -1048,7 +1044,6 @@ app.get('/api/partners/:provinceCode', requireAuth, (req, res) => {
   );
 });
 
-// API endpoint to add partner via AJAX
 app.post('/api/partners', requireAuth, requireRole('admin', 'operator'), (req, res) => {
   const { name, type, code, province_code, phone, address } = req.body;
   
@@ -1076,7 +1071,6 @@ app.post('/api/partners', requireAuth, requireRole('admin', 'operator'), (req, r
         return res.status(500).json({ error: 'Database error' });
       }
       
-      // Initialize stock tracking
       db.run(
         'INSERT INTO stock_tracking (partner_id, total_allocated, total_used, total_available, last_updated) VALUES (?, 0, 0, 0, ?)',
         [this.lastID, getWIBTimestamp()],
@@ -1101,7 +1095,6 @@ app.post('/api/partners', requireAuth, requireRole('admin', 'operator'), (req, r
   );
 });
 
-// API endpoint to get stock status
 app.get('/api/stock', requireAuth, (req, res) => {
   db.all(
     `SELECT 
@@ -1128,23 +1121,22 @@ app.get('/api/stock', requireAuth, (req, res) => {
   );
 });
 
-// Create protocol
+// ===========================================
+// PROTOCOL ROUTES
+// ===========================================
 app.post('/protocols', requireAuth, requireRole('admin', 'operator'), logActivity('create_protocol'), (req, res) => {
   const { province, partner_id, quantity } = req.body;
   
-  // Validate inputs
   const prov = provinces.find(p => p.code === province);
   if (!prov) return res.status(400).send('Invalid province');
   
   if (!partner_id) return res.status(400).send('Partner is required');
   
-  // Validate quantity
   const qty = parseInt(quantity) || 1;
   if (qty < 1 || qty > 100) {
     return res.status(400).send('Quantity must be between 1 and 100');
   }
   
-  // Verify partner exists and is active
   db.get('SELECT * FROM partners WHERE id = ? AND is_active = 1', [partner_id], (err, partner) => {
     if (err) {
       console.error('Error fetching partner:', err);
@@ -1155,7 +1147,6 @@ app.post('/protocols', requireAuth, requireRole('admin', 'operator'), logActivit
       return res.status(400).send('Invalid or inactive partner');
     }
     
-    // Build code base using WIB timezone
     const now = getWIBDate();
     const year = now.getFullYear();
     const month = String(now.getMonth() + 1).padStart(2, '0');
@@ -1164,7 +1155,6 @@ app.post('/protocols', requireAuth, requireRole('admin', 'operator'), logActivit
     const timestamp = Date.now().toString().slice(-6);
     const codeBase = `${dateStr}${province}${partner.code}${timestamp}`;
     
-    // Create protocols in batch
     const protocols = [];
     const createdAt = getWIBTimestamp();
     const stmt = db.prepare(
@@ -1188,7 +1178,6 @@ app.post('/protocols', requireAuth, requireRole('admin', 'operator'), logActivit
         return res.status(500).send('Database error');
       }
       
-      // Update stock tracking
       db.run(
         `UPDATE stock_tracking 
          SET total_allocated = total_allocated + ?,
@@ -1201,7 +1190,6 @@ app.post('/protocols', requireAuth, requireRole('admin', 'operator'), logActivit
             console.error('Error updating stock:', stockErr);
           }
           
-          // Emit real-time update
           io.emit('protocol_created', {
             codes: protocols,
             quantity: qty,
@@ -1216,7 +1204,6 @@ app.post('/protocols', requireAuth, requireRole('admin', 'operator'), logActivit
   });
 });
 
-// Update status
 app.post('/protocols/:id/status', requireAuth, requireRole('admin', 'operator'), (req, res) => {
   const { id } = req.params;
   const { status } = req.body;
@@ -1225,7 +1212,6 @@ app.post('/protocols/:id/status', requireAuth, requireRole('admin', 'operator'),
     return res.status(400).send('Invalid status');
   }
   
-  // Get current protocol data
   db.get('SELECT * FROM protocols WHERE id = ?', [id], (err, oldProtocol) => {
     if (err) {
       console.error('Error fetching protocol:', err);
@@ -1243,7 +1229,6 @@ app.post('/protocols/:id/status', requireAuth, requireRole('admin', 'operator'),
         return res.status(500).send('Failed to update status');
       }
       
-      // Update stock tracking if status changed to/from 'terpakai'
       if (oldProtocol.partner_id) {
         let stockChange = 0;
         
@@ -1270,7 +1255,6 @@ app.post('/protocols/:id/status', requireAuth, requireRole('admin', 'operator'),
         }
       }
       
-      // Emit real-time update
       io.emit('status_updated', {
         protocol: {
           id: oldProtocol.id,
@@ -1285,7 +1269,9 @@ app.post('/protocols/:id/status', requireAuth, requireRole('admin', 'operator'),
   });
 });
 
-// Barcode endpoints (QR Code)
+// ===========================================
+// BARCODE & SCANNER ROUTES
+// ===========================================
 app.get('/barcode/:code.png', ensureAuth, (req, res) => {
   const { code } = req.params;
   try {
@@ -1331,7 +1317,6 @@ app.get('/download/barcode/:code.png', ensureAuth, (req, res) => {
   }
 });
 
-// Lookup code endpoint
 app.get('/scan/:code', requireAuth, (req, res) => {
   const { code } = req.params;
   db.get('SELECT p.*, pt.name as partner_name, pt.type as partner_type FROM protocols p LEFT JOIN partners pt ON p.partner_id = pt.id WHERE p.code = ?', 
@@ -1342,7 +1327,6 @@ app.get('/scan/:code', requireAuth, (req, res) => {
     }
     if (!row) return res.status(404).json({ error: 'Not found' });
     
-    // Format the response
     const response = {
       ...row,
       created_at_formatted: new Date(row.created_at).toLocaleString('id-ID', { 
@@ -1356,17 +1340,14 @@ app.get('/scan/:code', requireAuth, (req, res) => {
   });
 });
 
-// Scanner page
 app.get('/scanner', requireAuth, (req, res) => {
   res.render('scanner', { user: req.user });
 });
 
-// API endpoint to confirm status change from scanner
 app.post('/api/confirm-usage/:code', requireAuth, (req, res) => {
   const { code } = req.params;
   const { action } = req.body;
   
-  // Validate action
   if (!['mark_terpakai', 'mark_delivered'].includes(action)) {
     return res.status(400).json({ error: 'Invalid action' });
   }
@@ -1382,7 +1363,6 @@ app.post('/api/confirm-usage/:code', requireAuth, (req, res) => {
     const newStatus = action === 'mark_delivered' ? 'delivered' : 'terpakai';
     const oldStatus = row.status;
     
-    // Update status
     db.run('UPDATE protocols SET status = ?, updated_by = ? WHERE code = ?', 
       [newStatus, req.user.id, code], function (err) {
       if (err) {
@@ -1390,7 +1370,6 @@ app.post('/api/confirm-usage/:code', requireAuth, (req, res) => {
         return res.status(500).json({ error: 'Failed to update status' });
       }
       
-      // Update stock if changing to/from terpakai
       if (row.partner_id) {
         let stockChange = 0;
         if (oldStatus !== 'terpakai' && newStatus === 'terpakai') {
@@ -1411,7 +1390,6 @@ app.post('/api/confirm-usage/:code', requireAuth, (req, res) => {
         }
       }
       
-      // Log activity
       const ip = req.ip || req.connection.remoteAddress;
       const userAgent = req.get('User-Agent');
       db.run(
@@ -1421,7 +1399,6 @@ app.post('/api/confirm-usage/:code', requireAuth, (req, res) => {
          `Scanned and marked as ${newStatus}`, ip, userAgent, getWIBTimestamp()]
       );
       
-      // Emit real-time update
       io.emit('status_updated', { 
         code: code, 
         newStatus: newStatus,
@@ -1437,7 +1414,9 @@ app.post('/api/confirm-usage/:code', requireAuth, (req, res) => {
   });
 });
 
-// Socket.io for real-time updates
+// ===========================================
+// SOCKET.IO
+// ===========================================
 io.on('connection', (socket) => {
   console.log('Client connected for real-time updates');
   
@@ -1446,7 +1425,9 @@ io.on('connection', (socket) => {
   });
 });
 
-// Start server
+// ===========================================
+// START SERVER
+// ===========================================
 const PORT = process.env.PORT || 8080;
 
 server.listen(PORT, '0.0.0.0', () => {
@@ -1456,7 +1437,6 @@ server.listen(PORT, '0.0.0.0', () => {
   console.log(`Server started at: ${new Date().toISOString()}`);
 });
 
-// Error handling for server
 server.on('error', (err) => {
   console.error('Server error:', err);
   if (err.code === 'EADDRINUSE') {
