@@ -151,7 +151,7 @@ const db = new sqlite3.Database(dbPath);
 // Database initialization
 db.serialize(() => {
   db.run(
-    `CREATE TABLE IF NOT EXISTS partners (
+    `CREATE TABLE IF NOT EXISTS partner (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       name TEXT NOT NULL,
       type TEXT NOT NULL CHECK(type IN ('klinik', 'puskesmas', 'rumah_sakit')),
@@ -173,7 +173,7 @@ db.serialize(() => {
       const hasPartnerId = columns.some(col => col.name === 'partner_id');
       if (!hasPartnerId) {
         console.log('Adding partner_id column to protocols table...');
-        db.run('ALTER TABLE protocols ADD COLUMN partner_id INTEGER REFERENCES partners(id)', (alterErr) => {
+        db.run('ALTER TABLE protocols ADD COLUMN partner_id INTEGER REFERENCES partner(id)', (alterErr) => {
           if (alterErr) {
             console.log('Note: Could not add partner_id column:', alterErr.message);
           } else {
@@ -196,7 +196,7 @@ db.serialize(() => {
       updated_by INTEGER,
       FOREIGN KEY (created_by) REFERENCES users (id),
       FOREIGN KEY (updated_by) REFERENCES users (id),
-      FOREIGN KEY (partner_id) REFERENCES partners (id)
+      FOREIGN KEY (partner_id) REFERENCES partner (id)
     )`
   );
   
@@ -208,7 +208,7 @@ db.serialize(() => {
       total_used INTEGER DEFAULT 0,
       total_available INTEGER DEFAULT 0,
       last_updated TEXT DEFAULT CURRENT_TIMESTAMP,
-      FOREIGN KEY (partner_id) REFERENCES partners (id)
+      FOREIGN KEY (partner_id) REFERENCES partner (id)
     )`
   );
   
@@ -547,7 +547,7 @@ app.get('/dashboard', requireAuth, requireRole('admin', 'operator'), logActivity
     db.all(
       `SELECT p.*, pt.name as partner_name, pt.type as partner_type, pt.code as partner_code 
        FROM protocols p 
-       LEFT JOIN partners pt ON p.partner_id = pt.id` + 
+       LEFT JOIN partner pt ON p.partner_id = pt.id` + 
        dateFilter + ' ORDER BY p.id DESC LIMIT 100', 
       params, 
       (err, filteredProtocols) => {
@@ -559,7 +559,7 @@ app.get('/dashboard', requireAuth, requireRole('admin', 'operator'), logActivity
         db.all(
           `SELECT p.status, p.province_code, pt.name as partner_name 
            FROM protocols p 
-           LEFT JOIN partners pt ON p.partner_id = pt.id` + dateFilter, 
+           LEFT JOIN partner pt ON p.partner_id = pt.id` + dateFilter, 
           params, 
           (err, statsData) => {
             if (err) {
@@ -594,16 +594,16 @@ app.get('/dashboard', requireAuth, requireRole('admin', 'operator'), logActivity
                  SUM(total_allocated) as total_allocated,
                  SUM(total_used) as total_used,
                  SUM(total_available) as total_available,
-                 COUNT(*) as active_partners
+                 COUNT(*) as active_partner
                FROM stock_tracking st
-               JOIN partners p ON st.partner_id = p.id
+               JOIN partner p ON st.partner_id = p.id
                WHERE p.is_active = 1`,
               (err, stockSummary) => {
                 const stock = stockSummary?.[0] || {
                   total_allocated: 0,
                   total_used: 0,
                   total_available: 0,
-                  active_partners: 0
+                  active_partner: 0
                 };
                 
                 getAdvancedAnalytics((analyticsData) => {
@@ -660,7 +660,7 @@ function getAdvancedAnalytics(callback) {
     metrics: {
       total_protocols: 0,
       unique_provinces: 0,
-      active_partners: 0,
+      active_partner: 0,
       avg_per_day: 0,
       completion_rate: 0,
       first_protocol: null,
@@ -675,9 +675,9 @@ function getAdvancedAnalytics(callback) {
       SUM(CASE WHEN p.status = 'created' THEN 1 ELSE 0 END) as created,
       SUM(CASE WHEN p.status = 'delivered' THEN 1 ELSE 0 END) as delivered,
       SUM(CASE WHEN p.status = 'terpakai' THEN 1 ELSE 0 END) as terpakai,
-      COUNT(DISTINCT p.partner_id) as unique_partners
+      COUNT(DISTINCT p.partner_id) as unique_partner
     FROM protocols p 
-    LEFT JOIN partners pt ON p.partner_id = pt.id
+    LEFT JOIN partner pt ON p.partner_id = pt.id
     WHERE p.created_at >= date('now', '-30 days')
     GROUP BY DATE(p.created_at)
     ORDER BY date DESC
@@ -709,7 +709,7 @@ function getAdvancedAnalytics(callback) {
             (SUM(CASE WHEN p.status = 'terpakai' THEN 1 ELSE 0 END) * 100.0 / NULLIF(COUNT(p.id), 0)), 2
           ) as usage_rate,
           DATE(MAX(p.created_at)) as last_activity
-        FROM partners pt
+        FROM partner pt
         LEFT JOIN protocols p ON pt.id = p.partner_id
         WHERE pt.is_active = 1
         GROUP BY pt.id, pt.name, pt.type, pt.code, pt.province_code
@@ -730,9 +730,9 @@ function getAdvancedAnalytics(callback) {
             ROUND(
               (SUM(CASE WHEN p.status = 'terpakai' THEN 1 ELSE 0 END) * 100.0 / NULLIF(COUNT(p.id), 0)), 2
             ) as usage_rate,
-            COUNT(DISTINCT p.partner_id) as active_partners
+            COUNT(DISTINCT p.partner_id) as active_partner
           FROM protocols p
-          LEFT JOIN partners pt ON p.partner_id = pt.id
+          LEFT JOIN partner pt ON p.partner_id = pt.id
           WHERE p.province_code IS NOT NULL
           GROUP BY p.province_code
           ORDER BY count DESC
@@ -758,7 +758,7 @@ function getAdvancedAnalytics(callback) {
               SELECT 
                 COUNT(p.id) as total_protocols,
                 COUNT(DISTINCT p.province_code) as unique_provinces,
-                COUNT(DISTINCT p.partner_id) as active_partners,
+                COUNT(DISTINCT p.partner_id) as active_partner,
                 ROUND(COUNT(p.id) * 1.0 / NULLIF(COUNT(DISTINCT DATE(p.created_at)), 0), 2) as avg_per_day,
                 ROUND(
                   SUM(CASE WHEN p.status = 'terpakai' THEN 1 ELSE 0 END) * 100.0 / NULLIF(COUNT(p.id), 0), 2
@@ -766,7 +766,7 @@ function getAdvancedAnalytics(callback) {
                 MIN(p.created_at) as first_protocol,
                 MAX(p.created_at) as latest_protocol
               FROM protocols p
-              LEFT JOIN partners pt ON p.partner_id = pt.id
+              LEFT JOIN partner pt ON p.partner_id = pt.id
             `, (err, metrics) => {
               if (err) console.error('Error fetching metrics:', err);
               analytics.metrics = metrics || analytics.metrics;
@@ -931,31 +931,31 @@ app.post('/users/:id/reset-password', requireAuth, requireRole('admin'), (req, r
 });
 
 // ===========================================
-// PARTNERS MANAGEMENT ROUTES
+// PARTNER MANAGEMENT ROUTES
 // ===========================================
-app.get('/partners', requireAuth, requireRole('admin', 'operator'), (req, res) => {
+app.get('/partner', requireAuth, requireRole('admin', 'operator'), (req, res) => {
   db.all(
     `SELECT p.*, u.username as created_by_username, 
      (SELECT COUNT(*) FROM protocols WHERE partner_id = p.id) as protocol_count
-     FROM partners p 
+     FROM partner p 
      LEFT JOIN users u ON p.created_by = u.id 
      ORDER BY p.created_at DESC`,
-    (err, partners) => {
+    (err, partner) => {
       if (err) {
-        console.error('Error fetching partners:', err);
+        console.error('Error fetching partner:', err);
         return res.status(500).send('Database error');
       }
       
-      res.render('partners', { 
+      res.render('partner', { 
         user: req.user, 
-        partners: partners || [],
+        partner: partner || [],
         provinces: provinces
       });
     }
   );
 });
 
-app.post('/partners', requireAuth, requireRole('admin', 'operator'), logActivity('create_partner', 'partner'), (req, res) => {
+app.post('/partner', requireAuth, requireRole('admin', 'operator'), logActivity('create_partner', 'partner'), (req, res) => {
   const { name, type, code, province_code, address, phone, email } = req.body;
   
   if (!name || !type || !code || !province_code) {
@@ -971,7 +971,7 @@ app.post('/partners', requireAuth, requireRole('admin', 'operator'), logActivity
   }
   
   db.run(
-    'INSERT INTO partners (name, type, code, province_code, address, phone, email, created_by, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+    'INSERT INTO partner (name, type, code, province_code, address, phone, email, created_by, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
     [name, type, code.toUpperCase(), province_code, address, phone, email, req.user.id, getWIBTimestamp()],
     function(err) {
       if (err) {
@@ -989,17 +989,17 @@ app.post('/partners', requireAuth, requireRole('admin', 'operator'), logActivity
           if (stockErr) {
             console.error('Error initializing stock tracking:', stockErr);
           }
-          res.redirect('/partners');
+          res.redirect('/partner');
         }
       );
     }
   );
 });
 
-app.post('/partners/:id/toggle-status', requireAuth, requireRole('admin'), (req, res) => {
+app.post('/partner/:id/toggle-status', requireAuth, requireRole('admin'), (req, res) => {
   const partnerId = req.params.id;
   
-  db.get('SELECT is_active FROM partners WHERE id = ?', [partnerId], (err, partner) => {
+  db.get('SELECT is_active FROM partner WHERE id = ?', [partnerId], (err, partner) => {
     if (err) {
       console.error('Error fetching partner:', err);
       return res.status(500).send('Database error');
@@ -1012,14 +1012,14 @@ app.post('/partners/:id/toggle-status', requireAuth, requireRole('admin'), (req,
     const newStatus = partner.is_active ? 0 : 1;
     
     db.run(
-      'UPDATE partners SET is_active = ?, updated_at = ? WHERE id = ?',
+      'UPDATE partner SET is_active = ?, updated_at = ? WHERE id = ?',
       [newStatus, getWIBTimestamp(), partnerId],
       (err) => {
         if (err) {
           console.error('Error updating partner status:', err);
           return res.status(500).send('Database error');
         }
-        res.redirect('/partners');
+        res.redirect('/partner');
       }
     );
   });
@@ -1028,23 +1028,23 @@ app.post('/partners/:id/toggle-status', requireAuth, requireRole('admin'), (req,
 // ===========================================
 // API ENDPOINTS
 // ===========================================
-app.get('/api/partners/:provinceCode', requireAuth, (req, res) => {
+app.get('/api/partner/:provinceCode', requireAuth, (req, res) => {
   const provinceCode = req.params.provinceCode;
   
   db.all(
-    'SELECT id, name, type, code FROM partners WHERE province_code = ? AND is_active = 1 ORDER BY name',
+    'SELECT id, name, type, code FROM partner WHERE province_code = ? AND is_active = 1 ORDER BY name',
     [provinceCode],
-    (err, partners) => {
+    (err, partner) => {
       if (err) {
-        console.error('Error fetching partners:', err);
+        console.error('Error fetching partner:', err);
         return res.status(500).json({ error: 'Database error' });
       }
-      res.json(partners || []);
+      res.json(partner || []);
     }
   );
 });
 
-app.post('/api/partners', requireAuth, requireRole('admin', 'operator'), (req, res) => {
+app.post('/api/partner', requireAuth, requireRole('admin', 'operator'), (req, res) => {
   const { name, type, code, province_code, phone, address } = req.body;
   
   if (!name || !type || !code || !province_code) {
@@ -1060,7 +1060,7 @@ app.post('/api/partners', requireAuth, requireRole('admin', 'operator'), (req, r
   }
   
   db.run(
-    'INSERT INTO partners (name, type, code, province_code, address, phone, created_by, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+    'INSERT INTO partner (name, type, code, province_code, address, phone, created_by, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
     [name, type, code.toUpperCase(), province_code, address, phone, req.user.id, getWIBTimestamp()],
     function(err) {
       if (err) {
@@ -1107,7 +1107,7 @@ app.get('/api/stock', requireAuth, (req, res) => {
        COALESCE(st.total_used, 0) as total_used,
        COALESCE(st.total_available, 0) as total_available,
        st.last_updated
-     FROM partners p
+     FROM partner p
      LEFT JOIN stock_tracking st ON p.id = st.partner_id
      WHERE p.is_active = 1
      ORDER BY p.name`,
@@ -1137,7 +1137,7 @@ app.post('/protocols', requireAuth, requireRole('admin', 'operator'), logActivit
     return res.status(400).send('Quantity must be between 1 and 100');
   }
   
-  db.get('SELECT * FROM partners WHERE id = ? AND is_active = 1', [partner_id], (err, partner) => {
+  db.get('SELECT * FROM partner WHERE id = ? AND is_active = 1', [partner_id], (err, partner) => {
     if (err) {
       console.error('Error fetching partner:', err);
       return res.status(500).send('Database error');
@@ -1319,7 +1319,7 @@ app.get('/download/barcode/:code.png', ensureAuth, (req, res) => {
 
 app.get('/scan/:code', requireAuth, (req, res) => {
   const { code } = req.params;
-  db.get('SELECT p.*, pt.name as partner_name, pt.type as partner_type FROM protocols p LEFT JOIN partners pt ON p.partner_id = pt.id WHERE p.code = ?', 
+  db.get('SELECT p.*, pt.name as partner_name, pt.type as partner_type FROM protocols p LEFT JOIN partner pt ON p.partner_id = pt.id WHERE p.code = ?', 
     [code], (err, row) => {
     if (err) {
       console.error('Error scanning code:', err);
@@ -1352,7 +1352,7 @@ app.post('/api/confirm-usage/:code', requireAuth, (req, res) => {
     return res.status(400).json({ error: 'Invalid action' });
   }
   
-  db.get('SELECT p.*, pt.name as partner_name FROM protocols p LEFT JOIN partners pt ON p.partner_id = pt.id WHERE p.code = ?', 
+  db.get('SELECT p.*, pt.name as partner_name FROM protocols p LEFT JOIN partner pt ON p.partner_id = pt.id WHERE p.code = ?', 
     [code], (err, row) => {
     if (err) {
       console.error('Error fetching protocol:', err);
