@@ -1192,7 +1192,7 @@ app.get(
           return res.status(500).send("Database error");
         }
 
-        res.render("partner", {
+        res.render("partners", {
           user: req.user,
           partner: partner || [],
           provinces: provinces,
