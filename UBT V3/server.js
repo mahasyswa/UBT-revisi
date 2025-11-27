@@ -872,16 +872,21 @@ function getAdvancedAnalytics(callback) {
           pt.type as partner_type,
           pt.code as partner_code,
           pt.province_code,
+          COALESCE(st.total_allocated, 0) as total_allocated,
+          COALESCE(st.total_used, 0) as total_used,
+          COALESCE(st.total_available, 0) as total_available,
           COUNT(p.id) as total_protocols,
           SUM(CASE WHEN p.status = 'terpakai' THEN 1 ELSE 0 END) as used_protocols,
+          SUM(CASE WHEN p.patient_name IS NOT NULL AND p.patient_name != '' THEN 1 ELSE 0 END) as patients_with_data,
           ROUND(
             (SUM(CASE WHEN p.status = 'terpakai' THEN 1 ELSE 0 END) * 100.0 / NULLIF(COUNT(p.id), 0)), 2
           ) as usage_rate,
           DATE(MAX(p.created_at)) as last_activity
         FROM partner pt
         LEFT JOIN protocols p ON pt.id = p.partner_id
+        LEFT JOIN stock_tracking st ON pt.id = st.partner_id
         WHERE pt.is_active = 1
-        GROUP BY pt.id, pt.name, pt.type, pt.code, pt.province_code
+        GROUP BY pt.id, pt.name, pt.type, pt.code, pt.province_code, st.total_allocated, st.total_used, st.total_available
         HAVING COUNT(p.id) > 0
         ORDER BY total_protocols DESC
         LIMIT 10

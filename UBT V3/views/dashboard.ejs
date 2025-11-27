@@ -486,20 +486,31 @@
         font-weight: 600;
         text-transform: capitalize;
       }
-      
-      .status-badge.status-terpakai {
-        background: #d4edda;
-        color: #155724;
-      }
-      
+      .status-badge.status-created,
       .status-badge.status-belum_dipakai {
-        background: #fff3cd;
-        color: #856404;
+        background: #fff0f6;
+        color: #a1005a;
       }
-      
+
       .status-badge.status-delivered {
-        background: #d1ecf1;
-        color: #0c5460;
+        background: #ffe6f3;
+        color: #b3006a;
+      }
+
+      .status-badge.status-terpakai {
+        background: #fbe8f3;
+        color: #8a0046;
+      }
+
+      .usage-rate-badge {
+        display: inline-block;
+        padding: 6px 10px;
+        border-radius: 14px;
+        background: linear-gradient(90deg,#ff6fa3,#e0007a);
+        color: #ffffff;
+        font-weight: 700;
+        font-size: 12px;
+        margin-left: 8px;
       }
       
       .btn-view-details {
@@ -808,7 +819,7 @@
         <style>
           /* Protocols table UI/UX improvements */
           .protocols-wrapper { overflow:auto; -webkit-overflow-scrolling: touch; border: 1px solid #e5e7eb; border-radius: 8px; background:#fff; padding: 8px; }
-          .protocols-table { width:100%; border-collapse: collapse; min-width: 960px; table-layout: auto; }
+          .protocols-table { width:100%; border-collapse: collapse; min-width: 900px; table-layout: auto; }
           .protocols-table th, .protocols-table td { padding:10px 12px; border-bottom:1px solid #f0f0f0; text-align:left; vertical-align: middle; overflow: visible; }
           .protocols-table th { background:#f9fafb; color:#374151; font-weight: 600; position: sticky; top: 0; z-index: 1; }
           .protocols-table .barcode-cell img { max-width: 220px; height:auto; display:block; }
@@ -822,9 +833,10 @@
           .protocols-table .group-header td { background:#f3f4f6; font-weight:600; }
           .protocols-table .status-badge { padding:2px 8px; border-radius:12px; font-size:12px; text-transform: capitalize; }
           @media (max-width: 768px) {
-            .protocols-table { min-width: 800px; }
+            .protocols-table { min-width: 760px; }
             .protocols-table .barcode-cell img { max-width: 180px; }
             .protocols-table .actions-cell select { min-width: 110px; }
+            .usage-rate-badge { padding: 4px 8px; font-size: 11px; }
           }
         </style>
         <% 
@@ -845,34 +857,40 @@
           const groups = Object.values(grouped);
         %>
         <% /* Protocol Status Summary - show compact detailed table when protocols exist */ %>
-        <% if (protocols && protocols.length > 0) { %>
+        <% if (analytics && analytics.partnerPerformance && analytics.partnerPerformance.length > 0) { %>
           <div class="protocol-status-section" style="margin-bottom:18px;">
-            <h3 style="margin:8px 0 12px; color:#333;">📋 Protocol Status</h3>
+            <h3 style="margin:8px 0 12px; color:#333;">📋 Status & Partner Stock</h3>
             <div style="overflow:auto; background:#fff; border:1px solid #e9ecef; border-radius:8px; padding:8px;">
-              <table class="protocol-status-table" style="width:100%; border-collapse:collapse; font-size:14px; min-width:720px;">
+              <table class="protocol-status-table" style="width:100%; border-collapse:collapse; font-size:14px; min-width:900px;">
                 <thead>
                   <tr>
-                    <th style="text-align:left; padding:10px; background:#f8f9fa; border-bottom:2px solid #e9ecef;">Protocol Code</th>
-                    <th style="text-align:left; padding:10px; background:#f8f9fa; border-bottom:2px solid #e9ecef;">Patient Name</th>
-                    <th style="text-align:left; padding:10px; background:#f8f9fa; border-bottom:2px solid #e9ecef;">Healthcare Facility</th>
-                    <th style="text-align:left; padding:10px; background:#f8f9fa; border-bottom:2px solid #e9ecef;">Status</th>
-                    <th style="text-align:left; padding:10px; background:#f8f9fa; border-bottom:2px solid #e9ecef;">QR Barcode</th>
+                    <th style="text-align:left; padding:10px; background:#f8f9fa; border-bottom:2px solid #e9ecef;">Partner</th>
+                    <th style="text-align:left; padding:10px; background:#f8f9fa; border-bottom:2px solid #e9ecef;">Patients With Data</th>
+                    <th style="text-align:left; padding:10px; background:#f8f9fa; border-bottom:2px solid #e9ecef;">Facility Type</th>
+                    <th style="text-align:left; padding:10px; background:#f8f9fa; border-bottom:2px solid #e9ecef;">Province</th>
+                    <th style="text-align:left; padding:10px; background:#f8f9fa; border-bottom:2px solid #e9ecef;">Total Equipment</th>
+                    <th style="text-align:left; padding:10px; background:#f8f9fa; border-bottom:2px solid #e9ecef;">Equipment In Use</th>
+                    <th style="text-align:left; padding:10px; background:#f8f9fa; border-bottom:2px solid #e9ecef;">Last Activity</th>
+                    <th style="text-align:left; padding:10px; background:#f8f9fa; border-bottom:2px solid #e9ecef;">Status Details</th>
                   </tr>
                 </thead>
                 <tbody>
-                  <% protocols.forEach(function(p) { %>
+                  <% analytics.partnerPerformance.forEach(function(pp) { %>
                     <tr>
-                      <td style="padding:10px; border-bottom:1px solid #f1f1f1;"><strong><%= p.code %></strong></td>
-                      <td style="padding:10px; border-bottom:1px solid #f1f1f1;"><%= p.patient_name || 'Not Set' %></td>
-                      <td style="padding:10px; border-bottom:1px solid #f1f1f1;"><%= p.healthcare_facility || (p.partner_name || 'N/A') %></td>
-                      <td style="padding:10px; border-bottom:1px solid #f1f1f1;">
-                        <span class="status-badge status-<%= p.status %>"><%= p.status || 'unknown' %></span>
-                      </td>
-                      <td style="padding:10px; border-bottom:1px solid #f1f1f1;">
-                        <div style="display:flex; align-items:center; gap:10px;">
-                          <img src="/barcode/<%= p.code %>.png" alt="QR <%= p.code %>" style="height:52px; width:auto; border-radius:6px; background:#fff;"/>
-                          <a href="/download/barcode/<%= p.code %>.png" class="btn-download" style="padding:6px 8px; background:#106EBE; color:#fff; border-radius:6px; text-decoration:none;">Download</a>
-                        </div>
+                      <td style="padding:10px; border-bottom:1px solid #f1f1f1;"><strong><%= pp.partner_name %></strong> <small style="color:#666;">(<%= pp.partner_code %>)</small></td>
+                      <td style="padding:10px; border-bottom:1px solid #f1f1f1;"><%= Number(pp.patients_with_data || 0).toLocaleString('id-ID') %></td>
+                      <td style="padding:10px; border-bottom:1px solid #f1f1f1;"><%= pp.partner_type ? pp.partner_type.replace('_',' ').toUpperCase() : '-' %></td>
+                      <td style="padding:10px; border-bottom:1px solid #f1f1f1;"><%= pp.province_code || '-' %></td>
+                      <td style="padding:10px; border-bottom:1px solid #f1f1f1;"><%= Number(pp.total_allocated || 0).toLocaleString('id-ID') %></td>
+                      <td style="padding:10px; border-bottom:1px solid #f1f1f1;"><%= Number(pp.total_used || 0).toLocaleString('id-ID') %></td>
+                      <td style="padding:10px; border-bottom:1px solid #f1f1f1;"><%= pp.last_activity ? new Date(pp.last_activity).toLocaleString('id-ID', { dateStyle: 'short', timeStyle: 'short' }) : '-' %></td>
+                      <td style="padding:10px; border-bottom:1px solid #f1f1f1; color:#333;">
+                        <%= Number(pp.total_protocols || 0).toLocaleString('id-ID') %> total, <%= Number(pp.used_protocols || 0).toLocaleString('id-ID') %> used
+                        <% if (pp.usage_rate !== null && pp.usage_rate !== undefined) { %>
+                          <span class="usage-rate-badge"><%= pp.usage_rate %>%</span>
+                        <% } else { %>
+                          <span style="color:#666; margin-left:8px;">-</span>
+                        <% } %>
                       </td>
                     </tr>
                   <% }) %>
