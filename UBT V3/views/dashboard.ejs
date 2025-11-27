@@ -841,7 +841,7 @@
           </div>
           <div class="stat-card terpakai">
             <div class="stat-number"><%= stats.terpakai %></div>
-            <div class="stat-label">Terpakai</div>
+            <div class="stat-label">Used</div>
           </div>
         </div>
 
@@ -860,7 +860,7 @@
                 </div>
                 <div class="legend-item">
                   <span class="legend-color terpakai"></span>
-                  <span>Terpakai (<%= stats.terpakai %>)</span>
+                  <span>Used (<%= stats.terpakai %>)</span>
                 </div>
               </div>
             </div>
@@ -932,8 +932,8 @@
             <input type="text" id="patientSearch" class="search-input" placeholder="Search by patient name, facility, or protocol code..." />
             <select id="statusFilter" class="filter-select">
               <option value="">All Status</option>
-              <option value="belum_dipakai">Belum Dipakai</option>
-              <option value="terpakai">Terpakai</option>
+              <option value="belum_dipakai">Created</option>
+              <option value="terpakai">Used</option>
               <option value="delivered">Delivered</option>
             </select>
             <button id="downloadReport" class="btn-download-report">📥 Download Report</button>
@@ -965,7 +965,7 @@
                       <td><%= protocol.healthcare_facility || 'N/A' %></td>
                       <td>
                         <span class="status-badge status-<%= protocol.status %>">
-                          <%= protocol.status || 'unknown' %>
+                          <%= ({ created:'Created', delivered:'Delivered', terpakai:'Used', 'belum_dipakai':'Created' })[protocol.status] || protocol.status || 'Unknown' %>
                         </span>
                       </td>
                       <td><%= protocol.used_date ? new Date(protocol.used_date).toLocaleDateString('id-ID') : '-' %></td>
@@ -1159,7 +1159,7 @@
                     <td><strong><%= p.code %></strong></td>
                     <td><%= p.province_code %></td>
                     <td><%= new Date(p.created_at).toLocaleString('id-ID', { dateStyle: 'short', timeStyle: 'short' }) %></td>
-                    <td><span class="status-badge status-<%= p.status %>"><%= p.status.replace('_', ' ') %></span></td>
+                    <td><span class="status-badge status-<%= p.status %>"><%= ({ created:'Created', delivered:'Delivered', terpakai:'Used', 'belum_dipakai':'Created' })[p.status] || p.status.replace('_', ' ') %></span></td>
                     <td class="barcode-cell">
                       <img src="/barcode/<%= p.code %>.png" alt="QR Code" />
                       <br>
@@ -1168,9 +1168,9 @@
                     <td class="actions-cell">
                       <form method="post" action="/protocols/<%= p.id %>/status">
                         <select name="status">
-                          <option value="created" <%= p.status === 'created' ? 'selected' : '' %>>created</option>
-                          <option value="delivered" <%= p.status === 'delivered' ? 'selected' : '' %>>delivered</option>
-                          <option value="terpakai" <%= p.status === 'terpakai' ? 'selected' : '' %>>terpakai</option>
+                          <option value="created" <%= p.status === 'created' ? 'selected' : '' %>>Created</option>
+                          <option value="delivered" <%= p.status === 'delivered' ? 'selected' : '' %>>Delivered</option>
+                          <option value="terpakai" <%= p.status === 'terpakai' ? 'selected' : '' %>>Used</option>
                         </select>
                         <button type="submit">Update</button>
                       </form>
@@ -1230,7 +1230,7 @@
             const statusCell = row.querySelector('td:nth-child(5)');
             const statusBadge = statusCell.querySelector('.status-badge');
             statusBadge.className = `status-badge status-${protocol.status}`;
-            statusBadge.textContent = protocol.status.replace('_', ' ');
+            statusBadge.textContent = ({ created:'Created', delivered:'Delivered', terpakai:'Used', 'belum_dipakai':'Created' })[protocol.status] || protocol.status.replace('_', ' ');
           }
         });
       }
@@ -1442,7 +1442,7 @@
               backgroundColor: 'rgba(72, 187, 120, 0.1)',
               tension: 0.4
             }, {
-              label: 'Terpakai',
+              label: 'Used',
               data: dailyTrendsData.map(d => d.terpakai),
               borderColor: '#ed8936',
               backgroundColor: 'rgba(237, 137, 54, 0.1)',
@@ -1504,7 +1504,7 @@
         new Chart(statusPieCtx, {
           type: 'doughnut',
           data: {
-            labels: ['Created', 'Delivered', 'Terpakai'],
+            labels: ['Created', 'Delivered', 'Used'],
             datasets: [{
               data: [<%= stats.created %>, <%= stats.delivered %>, <%= stats.terpakai %>],
               backgroundColor: [

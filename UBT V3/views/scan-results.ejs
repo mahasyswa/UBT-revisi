@@ -863,10 +863,10 @@
           "status-badge " + (mockProtocol.status || "belum-dipakai");
         const statusText =
           {
-            "belum-dipakai": "Belum Dipakai",
-            terpakai: "Terpakai",
-            delivered: "Terkirim",
-          }[mockProtocol.status] || "Status Tidak Diketahui";
+            "belum-dipakai": "Created",
+            terpakai: "Used",
+            delivered: "Delivered",
+          }[mockProtocol.status] || "Unknown";
 
         statusContainer.innerHTML = `
                 <div class="${statusClass}">

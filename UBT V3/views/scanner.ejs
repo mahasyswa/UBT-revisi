@@ -65,7 +65,7 @@
                 <h3>📦 Scan Result</h3>
                 <div id="result-content"></div>
                 <div class="action-buttons" id="action-buttons" style="display: none;">
-                    <button id="mark-terpakai" class="btn-action btn-terpakai">✅ Mark as Terpakai</button>
+                    <button id="mark-terpakai" class="btn-action btn-terpakai">✅ Mark as Used</button>
                     <button id="mark-delivered" class="btn-action btn-delivered">🚚 Mark as Delivered</button>
                     <button id="scan-another" class="btn-action btn-secondary">🔄 Scan Another</button>
                 </div>
@@ -173,9 +173,9 @@
                         <span class="value">${protocol.created_at_formatted}</span>
                     </div>
                     <div class="info-row">
-                        <span class="label">Current Status:</span>
-                        <span class="value status-${protocol.status}">${protocol.status.toUpperCase()}</span>
-                    </div>
+                                <span class="label">Current Status:</span>
+                                <span class="value status-${protocol.status}">${({ created:'Created', delivered:'Delivered', terpakai:'Used', 'belum_dipakai':'Created' })[protocol.status] || protocol.status.toUpperCase()}</span>
+                            </div>
                 </div>
             `;
             
@@ -186,9 +186,9 @@
                 // Store current code for actions
                 document.getElementById('mark-terpakai').onclick = () => confirmAction(protocol.code, 'mark_terpakai');
                 document.getElementById('mark-delivered').onclick = () => confirmAction(protocol.code, 'mark_delivered');
-            } else {
+                } else {
                 actionButtons.style.display = 'none';
-                showToast('This protocol is already marked as terpakai', 'info');
+                showToast('This protocol is already marked as Used', 'info');
             }
             
             document.getElementById('scan-result').style.display = 'block';
@@ -196,7 +196,7 @@
 
         // Confirm action before updating
         function confirmAction(code, action) {
-            const actionText = action === 'mark_terpakai' ? 'TERPAKAI' : 'DELIVERED';
+            const actionText = action === 'mark_terpakai' ? 'USED' : 'DELIVERED';
             
             if (confirm(`Are you sure you want to mark this protocol as ${actionText}?`)) {
                 updateStatus(code, action);
