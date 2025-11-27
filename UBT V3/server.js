@@ -1738,6 +1738,115 @@ app.post("/api/confirm-usage/:code", requireAuth, (req, res) => {
   );
 });
 
+// Update patient data for a protocol
+app.post("/api/update-patient-data/:code", requireAuth, (req, res) => {
+  const { code } = req.params;
+  const {
+    patient_name,
+    healthcare_facility,
+    occupation,
+    marital_status,
+    gpa,
+    address,
+    phone,
+    age,
+    notes,
+  } = req.body;
+
+  // Validate required fields
+  if (!patient_name || !healthcare_facility) {
+    return res
+      .status(400)
+      .json({ error: "Patient name and healthcare facility are required" });
+  }
+
+  db.run(
+    `UPDATE protocols SET 
+       patient_name = ?,
+       healthcare_facility = ?,
+       occupation = ?,
+       marital_status = ?,
+       gpa = ?,
+       address = ?,
+       phone = ?,
+       age = ?,
+       notes = ?,
+       updated_by = ?
+     WHERE code = ?`,
+    [
+      patient_name,
+      healthcare_facility,
+      occupation || null,
+      marital_status || null,
+      gpa || null,
+      address || null,
+      phone || null,
+      age || null,
+      notes || null,
+      req.user.id,
+      code,
+    ],
+    function (err) {
+      if (err) {
+        console.error("Error updating patient data:", err);
+        return res.status(500).json({ error: "Failed to update patient data" });
+      }
+
+      if (this.changes === 0) {
+        return res.status(404).json({ error: "Protocol not found" });
+      }
+
+      // Log activity
+      db.run(
+        `INSERT INTO activity_logs (user_id, action, target_type, target_id, details, created_at)
+         VALUES (?, ?, ?, ?, ?, ?)`,
+        [
+          req.user.id,
+          "update_patient_data",
+          "protocol",
+          code,
+          `Updated patient data: ${patient_name} at ${healthcare_facility}`,
+          getWIBTimestamp(),
+        ]
+      );
+
+      res.json({
+        success: true,
+        message: "Patient data updated successfully",
+      });
+    }
+  );
+});
+
+// Get patient data for a protocol
+app.get("/api/patient-data/:code", requireAuth, (req, res) => {
+  const { code } = req.params;
+
+  db.get(
+    `SELECT 
+       id, code, patient_name, healthcare_facility, occupation,
+       marital_status, gpa, address, phone, age, notes, status, created_at
+     FROM protocols
+     WHERE code = ?`,
+    [code],
+    (err, row) => {
+      if (err) {
+        console.error("Error fetching patient data:", err);
+        return res.status(500).json({ error: "Database error" });
+      }
+
+      if (!row) {
+        return res.status(404).json({ error: "Protocol not found" });
+      }
+
+      res.json({
+        success: true,
+        data: row,
+      });
+    }
+  );
+});
+
 // ===========================================
 // SOCKET.IO
 // ===========================================
