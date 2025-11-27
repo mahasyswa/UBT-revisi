@@ -205,6 +205,44 @@ db.serialize(() => {
           }
         );
       }
+
+      // Add patient data columns if they don't exist
+      const patientColumns = [
+        "patient_name",
+        "healthcare_facility",
+        "occupation",
+        "marital_status",
+        "gpa",
+        "address",
+        "phone",
+        "age",
+        "notes",
+        "used_date",
+      ];
+
+      patientColumns.forEach((columnName) => {
+        const hasColumn = columns.some((col) => col.name === columnName);
+        if (!hasColumn) {
+          let columnDef = "TEXT";
+          if (columnName === "used_date")
+            columnDef = "TEXT DEFAULT CURRENT_TIMESTAMP";
+
+          console.log(`Adding ${columnName} column to protocols table...`);
+          db.run(
+            `ALTER TABLE protocols ADD COLUMN ${columnName} ${columnDef}`,
+            (alterErr) => {
+              if (alterErr) {
+                console.log(
+                  `Note: Could not add ${columnName} column:`,
+                  alterErr.message
+                );
+              } else {
+                console.log(`Successfully added ${columnName} column`);
+              }
+            }
+          );
+        }
+      });
     }
   });
 
@@ -712,6 +750,7 @@ app.get(
                         stats,
                         analytics: analyticsData || getDefaultAnalytics(),
                         stock,
+                        partners: [],
                         req,
                       });
                     } catch (renderError) {
