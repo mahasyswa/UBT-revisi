@@ -1087,6 +1087,43 @@
           });
           const groups = Object.values(grouped);
         %>
+        <% /* Protocol Status Summary - show compact detailed table when protocols exist */ %>
+        <% if (protocols && protocols.length > 0) { %>
+          <div class="protocol-status-section" style="margin-bottom:18px;">
+            <h3 style="margin:8px 0 12px; color:#333;">📋 Protocol Status</h3>
+            <div style="overflow:auto; background:#fff; border:1px solid #e9ecef; border-radius:8px; padding:8px;">
+              <table class="protocol-status-table" style="width:100%; border-collapse:collapse; font-size:14px; min-width:720px;">
+                <thead>
+                  <tr>
+                    <th style="text-align:left; padding:10px; background:#f8f9fa; border-bottom:2px solid #e9ecef;">Protocol Code</th>
+                    <th style="text-align:left; padding:10px; background:#f8f9fa; border-bottom:2px solid #e9ecef;">Patient Name</th>
+                    <th style="text-align:left; padding:10px; background:#f8f9fa; border-bottom:2px solid #e9ecef;">Healthcare Facility</th>
+                    <th style="text-align:left; padding:10px; background:#f8f9fa; border-bottom:2px solid #e9ecef;">Status</th>
+                    <th style="text-align:left; padding:10px; background:#f8f9fa; border-bottom:2px solid #e9ecef;">QR Barcode</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <% protocols.forEach(function(p) { %>
+                    <tr>
+                      <td style="padding:10px; border-bottom:1px solid #f1f1f1;"><strong><%= p.code %></strong></td>
+                      <td style="padding:10px; border-bottom:1px solid #f1f1f1;"><%= p.patient_name || 'Not Set' %></td>
+                      <td style="padding:10px; border-bottom:1px solid #f1f1f1;"><%= p.healthcare_facility || (p.partner_name || 'N/A') %></td>
+                      <td style="padding:10px; border-bottom:1px solid #f1f1f1;">
+                        <span class="status-badge status-<%= p.status %>"><%= p.status || 'unknown' %></span>
+                      </td>
+                      <td style="padding:10px; border-bottom:1px solid #f1f1f1;">
+                        <div style="display:flex; align-items:center; gap:10px;">
+                          <img src="/barcode/<%= p.code %>.png" alt="QR <%= p.code %>" style="height:52px; width:auto; border-radius:6px; background:#fff;"/>
+                          <a href="/download/barcode/<%= p.code %>.png" class="btn-download" style="padding:6px 8px; background:#106EBE; color:#fff; border-radius:6px; text-decoration:none;">Download</a>
+                        </div>
+                      </td>
+                    </tr>
+                  <% }) %>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        <% } %>
         <% if (groups.length === 0) { %>
           <div class="no-data">Belum ada protocol untuk periode ini.</div>
         <% } else { %>
