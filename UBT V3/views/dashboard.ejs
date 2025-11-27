@@ -715,7 +715,6 @@
         <div class="user">
           Logged in as <strong><%= user.full_name || user %></strong> 
           <% if (user.role) { %>(<%= user.role %>)<% } %> — 
-          <a href="/create-protocol">➕ Create Protocol</a> |
           <a href="/partners">Partners</a> |
           <% if (user.role === 'admin') { %>
             <a href="/users">Users</a> | 
@@ -1243,24 +1242,47 @@
         }
         
         // Fetch partners for selected province
-        fetch(`/api/partners/${provinceCode}`)
+        fetch(`/api/partner/${provinceCode}`)
           .then(response => response.json())
           .then(partners => {
+            partnerSelect.innerHTML = '';
+
+            if (!partners || partners.length === 0) {
+              // No partners yet for this province: show new partner form
+              partnerSelect.innerHTML = '<option value="">-- Tidak Ada Mitra, Buat yang Baru --</option>';
+              partnerSelect.disabled = true;
+              addPartnerSection.style.display = 'block';
+              // Show inline new partner form directly
+              const newPartnerForm = document.getElementById('newPartnerForm');
+              if (newPartnerForm) {
+                newPartnerForm.style.display = 'block';
+              }
+              const addBtn = document.getElementById('addPartnerBtn');
+              if (addBtn) addBtn.style.display = 'none';
+              createBtn.disabled = true;
+              return;
+            }
+
             partnerSelect.innerHTML = '<option value="">Select Partner</option>';
-            
             partners.forEach(partner => {
               const option = document.createElement('option');
               option.value = partner.id;
               option.textContent = `${partner.name} (${partner.code}) - ${partner.type.replace('_', ' ').toUpperCase()}`;
               partnerSelect.appendChild(option);
             });
-            
+
             partnerSelect.disabled = false;
             addPartnerSection.style.display = 'block';
+            // Ensure new partner form is hidden when partners exist
+            const newPartnerForm = document.getElementById('newPartnerForm');
+            if (newPartnerForm) newPartnerForm.style.display = 'none';
+            const addBtn = document.getElementById('addPartnerBtn');
+            if (addBtn) addBtn.style.display = 'inline-block';
           })
           .catch(error => {
             console.error('Error fetching partners:', error);
             partnerSelect.innerHTML = '<option value="">Error loading partners</option>';
+            addPartnerSection.style.display = 'block';
           });
       });
       
@@ -1315,7 +1337,7 @@
         }
         
         // Send to server
-        fetch('/api/partners', {
+        fetch('/api/partner', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
