@@ -16,7 +16,9 @@
   border-radius: 12px;
   padding: 16px 20px;
   margin-bottom: 12px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15), 0 4px 8px rgba(0, 0, 0, 0.1);
+  box-shadow:
+    0 10px 30px rgba(0, 0, 0, 0.15),
+    0 4px 8px rgba(0, 0, 0, 0.1);
   display: flex;
   align-items: center;
   gap: 12px;
@@ -29,7 +31,9 @@
 }
 
 .toast:hover {
-  box-shadow: 0 12px 35px rgba(0, 0, 0, 0.2), 0 6px 10px rgba(0, 0, 0, 0.15);
+  box-shadow:
+    0 12px 35px rgba(0, 0, 0, 0.2),
+    0 6px 10px rgba(0, 0, 0, 0.15);
   transform: translateY(-2px);
 }
 
@@ -39,8 +43,8 @@
 
 /* Toast Types */
 .toast.success {
-  border-left-color: #10b981;
-  background: linear-gradient(135deg, #ecfdf5 0%, #ffffff 100%);
+  border-left-color: var(--color-primary);
+  background: linear-gradient(135deg, #fff6fb 0%, #ffffff 100%);
 }
 
 .toast.error {
@@ -54,8 +58,8 @@
 }
 
 .toast.info {
-  border-left-color: #3b82f6;
-  background: linear-gradient(135deg, #eff6ff 0%, #ffffff 100%);
+  border-left-color: var(--color-primary);
+  background: linear-gradient(135deg, #fff6fb 0%, #ffffff 100%);
 }
 
 /* Toast Icon */
@@ -71,9 +75,9 @@
 }
 
 .toast.success .toast-icon {
-  background: linear-gradient(135deg, #10b981, #059669);
+  background: linear-gradient(135deg, var(--color-mint), var(--color-primary));
   color: white;
-  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+  box-shadow: 0 4px 12px rgba(224, 0, 122, 0.28);
 }
 
 .toast.error .toast-icon {
@@ -89,9 +93,13 @@
 }
 
 .toast.info .toast-icon {
-  background: linear-gradient(135deg, #3b82f6, #2563eb);
+  background: linear-gradient(
+    135deg,
+    var(--color-primary),
+    var(--color-primary-600)
+  );
   color: white;
-  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+  box-shadow: 0 4px 12px rgba(224, 0, 122, 0.28);
 }
 
 /* Toast Content */
@@ -153,7 +161,7 @@
 }
 
 .toast.success .toast-progress {
-  color: #10b981;
+  color: var(--color-primary);
 }
 
 .toast.error .toast-progress {
@@ -165,7 +173,7 @@
 }
 
 .toast.info .toast-progress {
-  color: #3b82f6;
+  color: var(--color-primary);
 }
 
 /* Animations */
@@ -256,7 +264,9 @@
 @media (prefers-color-scheme: dark) {
   .toast {
     background: #1f2937;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4), 0 4px 8px rgba(0, 0, 0, 0.3);
+    box-shadow:
+      0 10px 30px rgba(0, 0, 0, 0.4),
+      0 4px 8px rgba(0, 0, 0, 0.3);
   }
 
   .toast.success {

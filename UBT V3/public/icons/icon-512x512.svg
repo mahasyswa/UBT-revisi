@@ -1,10 +1,10 @@
 <!-- 512x512 icon -->
 <svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
-  <rect width="512" height="512" fill="#106EBE"/>
+  <rect width="512" height="512" fill="#E0007A"/>
   <rect x="80" y="80" width="352" height="352" fill="white" rx="32"/>
-  <rect x="128" y="128" width="40" height="256" fill="#106EBE"/>
-  <rect x="192" y="128" width="40" height="256" fill="#106EBE"/>
-  <rect x="256" y="128" width="40" height="256" fill="#106EBE"/>
-  <rect x="320" y="128" width="40" height="256" fill="#106EBE"/>
+  <rect x="128" y="128" width="40" height="256" fill="#E0007A"/>
+  <rect x="192" y="128" width="40" height="256" fill="#E0007A"/>
+  <rect x="256" y="128" width="40" height="256" fill="#E0007A"/>
+  <rect x="320" y="128" width="40" height="256" fill="#E0007A"/>
   <text x="256" y="464" text-anchor="middle" fill="white" font-family="Arial" font-size="48">BCP</text>
 </svg>

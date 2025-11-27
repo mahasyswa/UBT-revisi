@@ -4,8 +4,8 @@
   "description": "Advanced barcode protocol management system with real-time tracking",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#106EBE",
-  "theme_color": "#106EBE",
+  "background_color": "#E0007A",
+  "theme_color": "#E0007A",
   "orientation": "portrait-primary",
   "scope": "/",
   "icons": [
@@ -17,7 +17,7 @@
     },
     {
       "src": "/icons/icon-96x96.png",
-      "sizes": "96x96", 
+      "sizes": "96x96",
       "type": "image/png",
       "purpose": "maskable any"
     },
@@ -68,7 +68,7 @@
     },
     {
       "name": "Dashboard",
-      "short_name": "Dashboard", 
+      "short_name": "Dashboard",
       "description": "View dashboard",
       "url": "/",
       "icons": [{ "src": "/icons/icon-96x96.png", "sizes": "96x96" }]
