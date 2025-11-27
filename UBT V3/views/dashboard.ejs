@@ -715,6 +715,7 @@
         <div class="user">
           Logged in as <strong><%= user.full_name || user %></strong> 
           <% if (user.role) { %>(<%= user.role %>)<% } %> — 
+          <a href="/create-protocol">➕ Create Protocol</a> |
           <a href="/partners">Partners</a> |
           <% if (user.role === 'admin') { %>
             <a href="/users">Users</a> | 

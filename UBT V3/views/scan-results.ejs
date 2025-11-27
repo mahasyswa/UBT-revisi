@@ -1,0 +1,989 @@
+<!DOCTYPE html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Hasil Pemindaian - Medical Scanner</title>
+    <link rel="manifest" href="/manifest.json" />
+    <meta name="theme-color" content="#FF86B0" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta
+      name="apple-mobile-web-app-status-bar-style"
+      content="black-translucent"
+    />
+    <meta name="apple-mobile-web-app-title" content="Hasil Pemindaian" />
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family:
+          -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen",
+          "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue",
+          sans-serif;
+        background: linear-gradient(135deg, #fff5f7 0%, #ffe8f0 100%);
+        min-height: 100vh;
+        padding: 20px;
+        display: flex;
+        justify-content: center;
+        align-items: flex-start;
+      }
+
+      .container {
+        width: 100%;
+        max-width: 900px;
+        animation: slideInUp 0.6s ease-out;
+      }
+
+      @keyframes slideInUp {
+        from {
+          opacity: 0;
+          transform: translateY(20px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      /* Header Section */
+      .header {
+        text-align: center;
+        margin-bottom: 40px;
+        padding-top: 20px;
+      }
+
+      .header-title {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 12px;
+        margin-bottom: 8px;
+      }
+
+      .header-icon {
+        font-size: 32px;
+        animation: float 3s ease-in-out infinite;
+      }
+
+      @keyframes float {
+        0%,
+        100% {
+          transform: translateY(0px);
+        }
+        50% {
+          transform: translateY(-8px);
+        }
+      }
+
+      .header-title h1 {
+        font-size: 32px;
+        background: linear-gradient(135deg, #ff86b0 0%, #c92b7e 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        font-weight: 700;
+        letter-spacing: -0.5px;
+      }
+
+      .header-subtitle {
+        font-size: 14px;
+        color: #b5687e;
+        font-weight: 500;
+      }
+
+      /* Summary Card */
+      .summary-card {
+        background: white;
+        border-radius: 24px;
+        padding: 24px;
+        margin-bottom: 32px;
+        box-shadow: 0 8px 32px rgba(255, 134, 176, 0.12);
+        border: 1px solid rgba(255, 134, 176, 0.1);
+        backdrop-filter: blur(10px);
+      }
+
+      .summary-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 24px;
+      }
+
+      .summary-item {
+        display: flex;
+        flex-direction: column;
+      }
+
+      .summary-label {
+        font-size: 12px;
+        color: #b5687e;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-bottom: 8px;
+      }
+
+      .summary-value {
+        font-size: 18px;
+        color: #2d1b28;
+        font-weight: 600;
+        word-break: break-word;
+      }
+
+      .summary-datetime {
+        font-size: 16px;
+        color: #5c3d52;
+        font-weight: 500;
+      }
+
+      /* Status Badge */
+      .status-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 16px;
+        border-radius: 20px;
+        font-size: 14px;
+        font-weight: 600;
+        width: fit-content;
+        margin-top: 4px;
+      }
+
+      .status-badge.belum-dipakai {
+        background: linear-gradient(135deg, #fff4d1 0%, #ffe8a3 100%);
+        color: #b8860b;
+        border: 1px solid rgba(184, 134, 11, 0.2);
+      }
+
+      .status-badge.terpakai {
+        background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
+        color: #155724;
+        border: 1px solid rgba(21, 87, 36, 0.2);
+      }
+
+      .status-badge.delivered {
+        background: linear-gradient(135deg, #d1ecf1 0%, #bee5eb 100%);
+        color: #0c5460;
+        border: 1px solid rgba(12, 84, 96, 0.2);
+      }
+
+      .status-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        display: inline-block;
+        animation: pulse 2s ease-in-out infinite;
+      }
+
+      .status-badge.belum-dipakai .status-dot {
+        background: #b8860b;
+      }
+
+      .status-badge.terpakai .status-dot {
+        background: #28a745;
+      }
+
+      .status-badge.delivered .status-dot {
+        background: #0c5460;
+      }
+
+      @keyframes pulse {
+        0%,
+        100% {
+          opacity: 1;
+        }
+        50% {
+          opacity: 0.6;
+        }
+      }
+
+      /* Patient Data Form Card */
+      .form-card {
+        background: linear-gradient(135deg, #fff5f7 0%, #ffe8f0 100%);
+        border-radius: 28px;
+        padding: 40px;
+        box-shadow: 0 12px 48px rgba(255, 134, 176, 0.15);
+        border: 2px solid rgba(255, 134, 176, 0.15);
+      }
+
+      .form-card-title {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 32px;
+        padding-bottom: 20px;
+        border-bottom: 2px solid rgba(255, 134, 176, 0.2);
+      }
+
+      .form-card-icon {
+        font-size: 28px;
+      }
+
+      .form-card-title h2 {
+        font-size: 24px;
+        color: #2d1b28;
+        font-weight: 700;
+        background: linear-gradient(135deg, #ff86b0 0%, #c92b7e 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+      }
+
+      /* Form Grid */
+      .form-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 24px;
+        margin-bottom: 24px;
+      }
+
+      .form-group {
+        display: flex;
+        flex-direction: column;
+      }
+
+      .form-group.full-width {
+        grid-column: 1 / -1;
+      }
+
+      .form-label {
+        font-size: 13px;
+        font-weight: 600;
+        color: #5c3d52;
+        margin-bottom: 10px;
+        text-transform: uppercase;
+        letter-spacing: 0.3px;
+      }
+
+      .form-input,
+      .form-select,
+      .form-textarea {
+        padding: 14px 18px;
+        border: 2px solid rgba(255, 134, 176, 0.2);
+        border-radius: 14px;
+        font-size: 15px;
+        font-family: inherit;
+        color: #2d1b28;
+        background: white;
+        transition: all 0.3s ease;
+        outline: none;
+      }
+
+      .form-input::placeholder,
+      .form-textarea::placeholder {
+        color: #b5a3b0;
+      }
+
+      .form-input:focus,
+      .form-select:focus,
+      .form-textarea:focus {
+        border-color: #ff86b0;
+        background: #fff9fb;
+        box-shadow: 0 0 0 4px rgba(255, 134, 176, 0.1);
+      }
+
+      .form-select {
+        cursor: pointer;
+        appearance: none;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%23FF86B0' d='M1 1l5 5 5-5'/%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-position: right 18px center;
+        padding-right: 45px;
+      }
+
+      .form-textarea {
+        resize: vertical;
+        min-height: 100px;
+        font-size: 14px;
+      }
+
+      /* GPA Section */
+      .gpa-section {
+        display: flex;
+        align-items: flex-end;
+        gap: 16px;
+        padding: 20px;
+        background: white;
+        border-radius: 16px;
+        border: 1px solid rgba(255, 134, 176, 0.15);
+        grid-column: 1 / -1;
+      }
+
+      .gpa-title {
+        font-size: 13px;
+        font-weight: 600;
+        color: #5c3d52;
+        text-transform: uppercase;
+        letter-spacing: 0.3px;
+        white-space: nowrap;
+      }
+
+      .gpa-inputs {
+        display: flex;
+        gap: 12px;
+        align-items: flex-end;
+      }
+
+      .gpa-group {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+      }
+
+      .gpa-label {
+        font-size: 11px;
+        font-weight: 700;
+        color: #ff86b0;
+        margin-bottom: 6px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+
+      .gpa-input {
+        width: 60px;
+        padding: 10px;
+        border: 2px solid rgba(255, 134, 176, 0.2);
+        border-radius: 10px;
+        font-size: 16px;
+        font-weight: 600;
+        text-align: center;
+        color: #c92b7e;
+        background: white;
+        transition: all 0.3s ease;
+      }
+
+      .gpa-input:focus {
+        border-color: #ff86b0;
+        background: #fff9fb;
+        box-shadow: 0 0 0 3px rgba(255, 134, 176, 0.1);
+      }
+
+      .gpa-separator {
+        color: #b5a3b0;
+        font-weight: 300;
+        margin: 0 4px;
+      }
+
+      /* Action Buttons */
+      .form-actions {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 16px;
+        margin-top: 40px;
+        padding-top: 24px;
+        border-top: 2px solid rgba(255, 134, 176, 0.1);
+      }
+
+      .btn {
+        padding: 14px 28px;
+        border: none;
+        border-radius: 14px;
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+      }
+
+      .btn-primary {
+        background: linear-gradient(135deg, #ff86b0 0%, #c92b7e 100%);
+        color: white;
+        box-shadow: 0 8px 24px rgba(255, 134, 176, 0.3);
+      }
+
+      .btn-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 12px 32px rgba(255, 134, 176, 0.4);
+      }
+
+      .btn-primary:active {
+        transform: translateY(0);
+      }
+
+      .btn-secondary {
+        background: white;
+        color: #c92b7e;
+        border: 2px solid rgba(255, 134, 176, 0.3);
+      }
+
+      .btn-secondary:hover {
+        background: #fff5f7;
+        border-color: #ff86b0;
+      }
+
+      /* Message Alert */
+      .alert {
+        padding: 16px 20px;
+        border-radius: 14px;
+        margin-bottom: 24px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        font-size: 14px;
+        font-weight: 500;
+        animation: slideDown 0.3s ease-out;
+      }
+
+      @keyframes slideDown {
+        from {
+          opacity: 0;
+          transform: translateY(-10px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      .alert-success {
+        background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
+        color: #155724;
+        border: 1px solid rgba(21, 87, 36, 0.2);
+      }
+
+      .alert-error {
+        background: linear-gradient(135deg, #f8d7da 0%, #f5c6cb 100%);
+        color: #721c24;
+        border: 1px solid rgba(114, 28, 36, 0.2);
+      }
+
+      .alert-icon {
+        font-size: 18px;
+        flex-shrink: 0;
+      }
+
+      /* Loading Spinner */
+      .spinner {
+        width: 20px;
+        height: 20px;
+        border: 3px solid rgba(255, 255, 255, 0.3);
+        border-top-color: white;
+        border-radius: 50%;
+        animation: spin 0.8s linear infinite;
+      }
+
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+
+      /* Responsive Design */
+      @media (max-width: 768px) {
+        body {
+          padding: 16px;
+        }
+
+        .header-title h1 {
+          font-size: 24px;
+        }
+
+        .form-card {
+          padding: 24px;
+          border-radius: 20px;
+        }
+
+        .form-grid {
+          grid-template-columns: 1fr;
+          gap: 18px;
+        }
+
+        .summary-grid {
+          grid-template-columns: 1fr;
+          gap: 18px;
+        }
+
+        .gpa-section {
+          flex-direction: column;
+          align-items: stretch;
+        }
+
+        .gpa-inputs {
+          justify-content: space-around;
+        }
+
+        .form-actions {
+          grid-template-columns: 1fr;
+          gap: 12px;
+        }
+
+        .btn {
+          padding: 12px 20px;
+          font-size: 13px;
+        }
+      }
+
+      @media (max-width: 480px) {
+        body {
+          padding: 12px;
+        }
+
+        .header-title h1 {
+          font-size: 20px;
+        }
+
+        .header-icon {
+          font-size: 28px;
+        }
+
+        .form-card {
+          padding: 20px;
+          border-radius: 16px;
+        }
+
+        .summary-card {
+          padding: 18px;
+          border-radius: 18px;
+        }
+
+        .form-card-title {
+          margin-bottom: 24px;
+          gap: 10px;
+        }
+
+        .form-card-title h2 {
+          font-size: 20px;
+        }
+
+        .form-card-icon {
+          font-size: 24px;
+        }
+
+        .form-input,
+        .form-select,
+        .form-textarea {
+          padding: 12px 14px;
+          font-size: 14px;
+        }
+
+        .gpa-input {
+          width: 50px;
+          font-size: 14px;
+          padding: 8px;
+        }
+
+        .gpa-section {
+          padding: 16px;
+        }
+      }
+
+      /* Print Styles */
+      @media print {
+        body {
+          background: white;
+        }
+
+        .form-card {
+          box-shadow: none;
+          border: 1px solid #ddd;
+        }
+
+        .btn {
+          display: none;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <!-- Header -->
+      <div class="header">
+        <div class="header-title">
+          <span class="header-icon">📊</span>
+          <h1>Hasil Pemindaian</h1>
+        </div>
+        <p class="header-subtitle">Sistem Manajemen Data Pemindaian Medis</p>
+      </div>
+
+      <!-- Alert Messages -->
+      <div id="alertContainer"></div>
+
+      <!-- Summary Card -->
+      <div class="summary-card">
+        <div class="summary-grid">
+          <div class="summary-item">
+            <span class="summary-label">Kode Protokol</span>
+            <span class="summary-value" id="protocolCode">-</span>
+          </div>
+          <div class="summary-item">
+            <span class="summary-label">Provinsi</span>
+            <span class="summary-value" id="protocolProvince">-</span>
+          </div>
+          <div class="summary-item">
+            <span class="summary-label">Dibuat</span>
+            <div>
+              <span class="summary-datetime" id="protocolDate">-</span>
+              <span
+                class="summary-datetime"
+                id="protocolTime"
+                style="display: block; margin-top: 4px"
+              ></span>
+            </div>
+          </div>
+          <div class="summary-item">
+            <span class="summary-label">Status Saat Ini</span>
+            <div id="protocolStatus"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Patient Data Form -->
+      <form class="form-card" id="patientForm">
+        <div class="form-card-title">
+          <span class="form-card-icon">👩‍⚕️</span>
+          <h2>Data Pasien OBGYN</h2>
+        </div>
+
+        <div class="form-grid">
+          <!-- Nama Lengkap Pasien -->
+          <div class="form-group">
+            <label class="form-label">Nama Lengkap Pasien</label>
+            <input
+              type="text"
+              class="form-input"
+              name="patient_name"
+              placeholder="Masukkan nama lengkap pasien"
+              required
+            />
+          </div>
+
+          <!-- Nama Faskes -->
+          <div class="form-group">
+            <label class="form-label">Nama Fasilitas Kesehatan</label>
+            <input
+              type="text"
+              class="form-input"
+              name="healthcare_facility"
+              placeholder="Rumah Sakit / Klinik"
+              required
+            />
+          </div>
+
+          <!-- Pekerjaan -->
+          <div class="form-group">
+            <label class="form-label">Pekerjaan</label>
+            <input
+              type="text"
+              class="form-input"
+              name="occupation"
+              placeholder="Masukkan pekerjaan pasien"
+            />
+          </div>
+
+          <!-- Status Pekerjaan -->
+          <div class="form-group">
+            <label class="form-label">Status Pekerjaan</label>
+            <select class="form-select" name="employment_status">
+              <option value="">-- Pilih Status --</option>
+              <option value="bekerja">Bekerja</option>
+              <option value="tidak_bekerja">Tidak Bekerja</option>
+              <option value="wiraswasta">Wiraswasta</option>
+              <option value="pns">PNS</option>
+              <option value="pensiun">Pensiun</option>
+            </select>
+          </div>
+
+          <!-- Status Pernikahan -->
+          <div class="form-group">
+            <label class="form-label">Status Pernikahan</label>
+            <select class="form-select" name="marital_status">
+              <option value="">-- Pilih Status --</option>
+              <option value="belum_menikah">Belum Menikah</option>
+              <option value="menikah">Menikah</option>
+              <option value="cerai_hidup">Cerai Hidup</option>
+              <option value="cerai_mati">Cerai Mati</option>
+            </select>
+          </div>
+
+          <!-- Alamat Lengkap -->
+          <div class="form-group full-width">
+            <label class="form-label">Alamat Lengkap</label>
+            <textarea
+              class="form-textarea"
+              name="address"
+              placeholder="Masukkan alamat lengkap pasien"
+            ></textarea>
+          </div>
+
+          <!-- Provinsi -->
+          <div class="form-group">
+            <label class="form-label">Provinsi</label>
+            <select
+              class="form-select"
+              name="province"
+              id="provinceSelect"
+              required
+            >
+              <option value="">-- Pilih Provinsi --</option>
+            </select>
+          </div>
+
+          <!-- Kabupaten/Kota -->
+          <div class="form-group">
+            <label class="form-label">Kabupaten/Kota</label>
+            <select class="form-select" name="city" id="citySelect">
+              <option value="">-- Pilih Kabupaten/Kota --</option>
+            </select>
+          </div>
+
+          <!-- Tindakan Medis -->
+          <div class="form-group full-width">
+            <label class="form-label">Tindakan Medis</label>
+            <input
+              type="text"
+              class="form-input"
+              name="medical_action"
+              placeholder="Tindakan medis yang dilakukan"
+            />
+          </div>
+
+          <!-- GPA Section -->
+          <div class="form-group full-width">
+            <div class="gpa-section">
+              <span class="gpa-title">GPA (Gravida–Para–Abortus)</span>
+              <div class="gpa-inputs">
+                <div class="gpa-group">
+                  <span class="gpa-label">G</span>
+                  <input
+                    type="number"
+                    class="gpa-input"
+                    name="gpa_gravida"
+                    min="0"
+                    max="20"
+                    placeholder="0"
+                  />
+                </div>
+                <span class="gpa-separator">–</span>
+                <div class="gpa-group">
+                  <span class="gpa-label">P</span>
+                  <input
+                    type="number"
+                    class="gpa-input"
+                    name="gpa_para"
+                    min="0"
+                    max="20"
+                    placeholder="0"
+                  />
+                </div>
+                <span class="gpa-separator">–</span>
+                <div class="gpa-group">
+                  <span class="gpa-label">A</span>
+                  <input
+                    type="number"
+                    class="gpa-input"
+                    name="gpa_abortus"
+                    min="0"
+                    max="20"
+                    placeholder="0"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Tenaga Kesehatan -->
+          <div class="form-group full-width">
+            <label class="form-label">Tenaga Kesehatan</label>
+            <select
+              class="form-select"
+              name="healthcare_worker"
+              id="healthcareWorkerSelect"
+            >
+              <option value="">-- Pilih Tenaga Kesehatan --</option>
+            </select>
+          </div>
+
+          <!-- Age (Hidden but stored) -->
+          <input type="hidden" name="age" id="ageInput" />
+          <input type="hidden" name="phone" id="phoneInput" />
+          <input type="hidden" name="notes" id="notesInput" />
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="form-actions">
+          <button type="submit" class="btn btn-primary">
+            <span>💾</span> Simpan Data
+          </button>
+          <button type="reset" class="btn btn-secondary">
+            <span>🔄</span> Bersihkan
+          </button>
+        </div>
+      </form>
+    </div>
+
+    <script>
+      // Mock data - replace with actual API calls
+      const mockProtocol = {
+        code: "PROTO-2024-001",
+        province_code: "DKI",
+        created_at: new Date().toISOString(),
+        status: "terpakai",
+      };
+
+      // Initialize the form
+      document.addEventListener("DOMContentLoaded", function () {
+        loadProtocolData();
+        loadProvinces();
+        loadHealthcareWorkers();
+        setupFormHandlers();
+      });
+
+      function loadProtocolData() {
+        // Display protocol information in summary card
+        document.getElementById("protocolCode").textContent =
+          mockProtocol.code || "-";
+        document.getElementById("protocolProvince").textContent =
+          mockProtocol.province_code || "-";
+
+        const createdDate = new Date(mockProtocol.created_at);
+        document.getElementById("protocolDate").textContent =
+          createdDate.toLocaleDateString("id-ID", {
+            year: "numeric",
+            month: "long",
+            day: "numeric",
+          });
+        document.getElementById("protocolTime").textContent =
+          createdDate.toLocaleTimeString("id-ID", {
+            hour: "2-digit",
+            minute: "2-digit",
+            second: "2-digit",
+          });
+
+        // Display status badge
+        const statusContainer = document.getElementById("protocolStatus");
+        const statusClass =
+          "status-badge " + (mockProtocol.status || "belum-dipakai");
+        const statusText =
+          {
+            "belum-dipakai": "Belum Dipakai",
+            terpakai: "Terpakai",
+            delivered: "Terkirim",
+          }[mockProtocol.status] || "Status Tidak Diketahui";
+
+        statusContainer.innerHTML = `
+                <div class="${statusClass}">
+                    <span class="status-dot"></span>
+                    ${statusText}
+                </div>
+            `;
+      }
+
+      function loadProvinces() {
+        // Mock provinces data
+        const provinces = [
+          { code: "DKI", name: "DKI Jakarta" },
+          { code: "JABAR", name: "Jawa Barat" },
+          { code: "JATENG", name: "Jawa Tengah" },
+          { code: "JATIM", name: "Jawa Timur" },
+          { code: "DIY", name: "Daerah Istimewa Yogyakarta" },
+          { code: "BANTEN", name: "Banten" },
+          { code: "SUMUT", name: "Sumatera Utara" },
+          { code: "SUMBAR", name: "Sumatera Barat" },
+          { code: "RIAU", name: "Riau" },
+          { code: "JAMBI", name: "Jambi" },
+          { code: "SUMSEL", name: "Sumatera Selatan" },
+          { code: "BABEL", name: "Bangka Belitung" },
+          { code: "LAMPUNG", name: "Lampung" },
+          { code: "KALBAR", name: "Kalimantan Barat" },
+          { code: "KALTENG", name: "Kalimantan Tengah" },
+          { code: "KALSEL", name: "Kalimantan Selatan" },
+          { code: "KALTIM", name: "Kalimantan Timur" },
+          { code: "KALTARA", name: "Kalimantan Utara" },
+          { code: "SULUT", name: "Sulawesi Utara" },
+          { code: "SULTENG", name: "Sulawesi Tengah" },
+          { code: "SULSEL", name: "Sulawesi Selatan" },
+          { code: "SULTRA", name: "Sulawesi Tenggara" },
+          { code: "GORONTALO", name: "Gorontalo" },
+          { code: "SULBAR", name: "Sulawesi Barat" },
+          { code: "MALUKU", name: "Maluku" },
+          { code: "MALUT", name: "Maluku Utara" },
+          { code: "PAPUA", name: "Papua" },
+          { code: "PAPUABARAT", name: "Papua Barat" },
+          { code: "NUSA", name: "Nusa Tenggara Timur" },
+          { code: "NTB", name: "Nusa Tenggara Barat" },
+          { code: "BALI", name: "Bali" },
+        ];
+
+        const select = document.getElementById("provinceSelect");
+        provinces.forEach((province) => {
+          const option = document.createElement("option");
+          option.value = province.code;
+          option.textContent = province.name;
+          select.appendChild(option);
+        });
+      }
+
+      function loadHealthcareWorkers() {
+        // Mock healthcare workers
+        const workers = [
+          { id: 1, name: "Dr. Siti Nurhaliza" },
+          { id: 2, name: "Dr. Budi Santoso" },
+          { id: 3, name: "Bidan Ratna Kumala" },
+          { id: 4, name: "Perawat Dina Suryani" },
+          { id: 5, name: "Dr. Hendra Gunawan" },
+        ];
+
+        const select = document.getElementById("healthcareWorkerSelect");
+        workers.forEach((worker) => {
+          const option = document.createElement("option");
+          option.value = worker.id;
+          option.textContent = worker.name;
+          select.appendChild(option);
+        });
+      }
+
+      function setupFormHandlers() {
+        const form = document.getElementById("patientForm");
+        form.addEventListener("submit", handleFormSubmit);
+      }
+
+      async function handleFormSubmit(e) {
+        e.preventDefault();
+
+        const form = e.target;
+        const formData = new FormData(form);
+        const data = Object.fromEntries(formData);
+
+        // Combine GPA fields
+        data.gpa = `${data.gpa_gravida || 0}-${data.gpa_para || 0}-${data.gpa_abortus || 0}`;
+
+        try {
+          // Simulate API call
+          showAlert("✅ Data berhasil disimpan!", "success");
+          console.log("Form data:", data);
+
+          // In production, you would send this to your server:
+          // const response = await fetch(`/api/update-patient-data/${mockProtocol.code}`, {
+          //     method: 'POST',
+          //     headers: { 'Content-Type': 'application/json' },
+          //     body: JSON.stringify(data)
+          // });
+        } catch (error) {
+          showAlert("❌ Terjadi kesalahan: " + error.message, "error");
+        }
+      }
+
+      function showAlert(message, type) {
+        const container = document.getElementById("alertContainer");
+        const alert = document.createElement("div");
+        alert.className = `alert alert-${type}`;
+        alert.innerHTML = `
+                <span class="alert-icon">${type === "success" ? "✓" : "⚠"}</span>
+                <span>${message}</span>
+            `;
+        container.appendChild(alert);
+
+        // Auto remove after 4 seconds
+        setTimeout(() => alert.remove(), 4000);
+      }
+    </script>
+  </body>
+</html>

@@ -1,0 +1,808 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Buat Protokol Baru - UBT System</title>
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#FF86B0">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            min-height: 100vh;
+            color: #333;
+            line-height: 1.6;
+        }
+
+        header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px 20px;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+            margin-bottom: 30px;
+        }
+
+        header h1 {
+            font-size: 28px;
+            margin-bottom: 8px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        header p {
+            font-size: 14px;
+            opacity: 0.95;
+        }
+
+        header .icon {
+            font-size: 32px;
+        }
+
+        .header-actions {
+            margin-top: 20px;
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .header-actions a {
+            color: white;
+            text-decoration: none;
+            font-size: 13px;
+            font-weight: 500;
+            padding: 8px 16px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 6px;
+            transition: all 0.3s ease;
+        }
+
+        .header-actions a:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: translateY(-2px);
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 0 20px 40px 20px;
+        }
+
+        .breadcrumb {
+            margin-bottom: 30px;
+            font-size: 13px;
+        }
+
+        .breadcrumb a {
+            color: #667eea;
+            text-decoration: none;
+            font-weight: 500;
+        }
+
+        .breadcrumb a:hover {
+            text-decoration: underline;
+        }
+
+        .breadcrumb-separator {
+            margin: 0 8px;
+            color: #ccc;
+        }
+
+        section {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+        }
+
+        section h2 {
+            font-size: 22px;
+            color: #333;
+            margin-bottom: 25px;
+            padding-bottom: 15px;
+            border-bottom: 3px solid #667eea;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        section h2 .icon {
+            font-size: 26px;
+        }
+
+        section h3 {
+            font-size: 16px;
+            color: #555;
+            margin: 25px 0 15px 0;
+            font-weight: 600;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .form-group label {
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #444;
+            font-size: 14px;
+        }
+
+        .form-group label .required {
+            color: #e74c3c;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            font-family: inherit;
+            transition: all 0.3s ease;
+            background: white;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #667eea;
+            background: #f8f9ff;
+            box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
+        }
+
+        .form-group input[disabled],
+        .form-group select[disabled] {
+            background: #f5f5f5;
+            color: #999;
+            cursor: not-allowed;
+        }
+
+        .form-group small {
+            color: #999;
+            font-size: 12px;
+            margin-top: 6px;
+        }
+
+        .form-group textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 12px;
+            margin-top: 30px;
+            flex-wrap: wrap;
+        }
+
+        button,
+        .btn {
+            padding: 12px 28px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        button:disabled,
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-primary:active:not(:disabled) {
+            transform: translateY(0);
+        }
+
+        .btn-secondary {
+            background: white;
+            color: #667eea;
+            border: 2px solid #667eea;
+        }
+
+        .btn-secondary:hover:not(:disabled) {
+            background: #f8f9ff;
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+            color: white;
+        }
+
+        .btn-success:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(17, 153, 142, 0.3);
+        }
+
+        .alert {
+            padding: 16px 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            font-size: 14px;
+            animation: slideDown 0.3s ease-out;
+        }
+
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .alert-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .alert-error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .alert-info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+
+        .alert-icon {
+            font-size: 18px;
+            flex-shrink: 0;
+            margin-top: 2px;
+        }
+
+        .info-box {
+            background: #f0f4ff;
+            border-left: 4px solid #667eea;
+            padding: 16px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            font-size: 13px;
+            color: #444;
+        }
+
+        .info-box strong {
+            color: #667eea;
+        }
+
+        .new-partner-form {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin-top: 20px;
+            border: 2px dashed #ddd;
+        }
+
+        .new-partner-form h3 {
+            margin-top: 0;
+        }
+
+        .partner-section {
+            background: #f8f9ff;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border: 1px solid #e0e0ff;
+        }
+
+        .partner-section h4 {
+            margin-top: 0;
+            color: #667eea;
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .quantity-info {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 12px 16px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            font-size: 13px;
+            color: #856404;
+        }
+
+        .success-message {
+            display: none;
+            background: #d4edda;
+            color: #155724;
+            padding: 16px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border: 1px solid #c3e6cb;
+        }
+
+        .loading {
+            display: none;
+            align-items: center;
+            gap: 10px;
+            color: #667eea;
+            font-weight: 500;
+        }
+
+        .spinner {
+            width: 18px;
+            height: 18px;
+            border: 3px solid rgba(102, 126, 234, 0.3);
+            border-top-color: #667eea;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        footer {
+            text-align: center;
+            padding: 20px;
+            color: #999;
+            font-size: 12px;
+            margin-top: 40px;
+        }
+
+        @media (max-width: 768px) {
+            header {
+                padding: 20px;
+            }
+
+            header h1 {
+                font-size: 22px;
+            }
+
+            section {
+                padding: 20px;
+            }
+
+            .form-row {
+                grid-template-columns: 1fr;
+                gap: 15px;
+            }
+
+            .button-group {
+                flex-direction: column;
+            }
+
+            button,
+            .btn {
+                width: 100%;
+            }
+
+            .header-actions {
+                flex-direction: column;
+            }
+
+            .header-actions a {
+                text-align: center;
+            }
+        }
+
+        @media print {
+            header,
+            .header-actions,
+            .button-group,
+            footer {
+                display: none;
+            }
+
+            section {
+                box-shadow: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header>
+        <h1>
+            <span class="icon">📋</span>
+            Buat Protokol Baru
+        </h1>
+        <p>Buat dan kelola protokol pemindaian medis dengan mudah</p>
+        <div class="header-actions">
+            <a href="/dashboard">← Kembali ke Dashboard</a>
+            <a href="/scanner">📱 Ke Scanner</a>
+            <% if (user.role === 'admin') { %>
+                <a href="/partner">🏥 Kelola Mitra</a>
+            <% } %>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <div class="container">
+        <!-- Breadcrumb -->
+        <div class="breadcrumb">
+            <a href="/">Home</a>
+            <span class="breadcrumb-separator">/</span>
+            <a href="/dashboard">Dashboard</a>
+            <span class="breadcrumb-separator">/</span>
+            <span>Buat Protokol</span>
+        </div>
+
+        <!-- Alert Messages -->
+        <% if (successMessage) { %>
+            <div class="alert alert-success">
+                <span class="alert-icon">✓</span>
+                <div>
+                    <strong>Berhasil!</strong> <%= successMessage %>
+                </div>
+            </div>
+        <% } %>
+
+        <!-- Create Protocol Section -->
+        <section>
+            <h2>
+                <span class="icon">⚙️</span>
+                Buat Protokol Baru
+            </h2>
+
+            <div class="info-box">
+                <strong>💡 Tips:</strong> Pilih provinsi, kemudian pilih atau buat mitra kesehatan baru. Tentukan jumlah protokol yang ingin dibuat (1-100), lalu klik tombol "Buat Protokol".
+            </div>
+
+            <form method="post" action="/protocols" id="protocolForm" onsubmit="handleSubmit(event)">
+                <!-- Province Selection -->
+                <h3>1️⃣ Pilih Provinsi</h3>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="province">
+                            Provinsi <span class="required">*</span>
+                        </label>
+                        <select name="province" id="provinceSelect" required onchange="loadPartners()">
+                            <option value="">-- Pilih Provinsi --</option>
+                            <% provinces.forEach(function(p){ %>
+                                <option value="<%= p.code %>"><%= p.name %> (<%= p.code %>)</option>
+                            <% }) %>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Partner Selection -->
+                <h3>2️⃣ Pilih atau Buat Mitra Kesehatan</h3>
+                <div class="partner-section">
+                    <h4>Mitra yang Tersedia</h4>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="partner_id">
+                                Mitra <span class="required">*</span>
+                            </label>
+                            <select name="partner_id" id="partnerSelect" required disabled onchange="validateForm()">
+                                <option value="">-- Pilih Provinsi Terlebih Dahulu --</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- New Partner Section -->
+                <div class="form-row">
+                    <div class="form-group">
+                        <button type="button" id="toggleNewPartner" class="btn btn-secondary" disabled>
+                            + Buat Mitra Baru
+                        </button>
+                    </div>
+                </div>
+
+                <div id="newPartnerForm" class="new-partner-form" style="display: none;">
+                    <h3>🏥 Buat Mitra Kesehatan Baru</h3>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="partner_name">Nama Mitra <span class="required">*</span></label>
+                            <input type="text" id="partner_name" name="partner_name" placeholder="Nama lengkap fasilitas kesehatan" />
+                        </div>
+                        <div class="form-group">
+                            <label for="partner_type">Jenis Mitra <span class="required">*</span></label>
+                            <select id="partner_type" name="partner_type">
+                                <option value="">-- Pilih Jenis --</option>
+                                <option value="klinik">Klinik</option>
+                                <option value="puskesmas">Puskesmas</option>
+                                <option value="rumah_sakit">Rumah Sakit</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="partner_code">Kode Mitra <span class="required">*</span></label>
+                            <input type="text" id="partner_code" name="partner_code" placeholder="Contoh: KLN001" maxlength="10" />
+                            <small>Kode unik untuk identifikasi mitra (max 10 karakter)</small>
+                        </div>
+                        <div class="form-group">
+                            <label for="partner_phone">Nomor Telepon (Opsional)</label>
+                            <input type="tel" id="partner_phone" name="partner_phone" placeholder="+62 812 3456 7890" />
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="partner_address">Alamat (Opsional)</label>
+                            <textarea id="partner_address" name="partner_address" placeholder="Alamat lengkap mitra kesehatan"></textarea>
+                        </div>
+                    </div>
+                    <div class="button-group">
+                        <button type="button" id="cancelPartnerBtn" class="btn btn-secondary">Batal</button>
+                        <button type="button" id="savePartnerBtn" class="btn btn-success">Simpan & Gunakan Mitra Ini</button>
+                    </div>
+                </div>
+
+                <!-- Quantity Selection -->
+                <h3>3️⃣ Jumlah Protokol</h3>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="quantity">
+                            Jumlah Protokol <span class="required">*</span>
+                        </label>
+                        <input type="number" name="quantity" id="quantityInput" min="1" max="100" value="1" required onchange="updateQuantityInfo()" />
+                        <small>Jumlah protokol yang akan dibuat (1-100)</small>
+                    </div>
+                </div>
+
+                <div id="quantityInfo" class="quantity-info" style="display: none;">
+                    Anda akan membuat <strong id="quantityNumber">1</strong> protokol. Setiap protokol akan memiliki QR code unik.
+                </div>
+
+                <!-- Submit Button -->
+                <div class="button-group">
+                    <button type="reset" class="btn btn-secondary">
+                        🔄 Bersihkan Form
+                    </button>
+                    <button type="submit" id="submitBtn" class="btn btn-primary" disabled>
+                        <span id="submitText">💾 Buat Protokol</span>
+                        <span class="loading" id="loading">
+                            <span class="spinner"></span>
+                            Memproses...
+                        </span>
+                    </button>
+                </div>
+            </form>
+        </section>
+
+        <!-- How It Works Section -->
+        <section>
+            <h2>
+                <span class="icon">❓</span>
+                Bagaimana Cara Kerjanya?
+            </h2>
+
+            <h3>Langkah-Langkah Membuat Protokol:</h3>
+            <ol style="margin-left: 20px; margin-bottom: 20px;">
+                <li><strong>Pilih Provinsi</strong> - Tentukan lokasi provinsi dimana protokol akan digunakan</li>
+                <li><strong>Pilih Mitra</strong> - Pilih fasilitas kesehatan atau buat mitra baru untuk provinsi tersebut</li>
+                <li><strong>Tentukan Jumlah</strong> - Masukkan jumlah protokol yang ingin dibuat (maksimal 100 sekaligus)</li>
+                <li><strong>Buat Protokol</strong> - Klik tombol untuk membuat protokol dan menghasilkan QR code</li>
+                <li><strong>Download & Gunakan</strong> - Protokol siap digunakan oleh mitra kesehatan</li>
+            </ol>
+
+            <h3>Kode Protokol:</h3>
+            <p>Setiap protokol memiliki kode unik yang terdiri dari:</p>
+            <ul style="margin-left: 20px; margin-bottom: 20px;">
+                <li><strong>Tanggal</strong> - Format YYYYMMDD (8 digit)</li>
+                <li><strong>Provinsi</strong> - Kode 3 huruf provinsi</li>
+                <li><strong>Mitra</strong> - Kode unik mitra kesehatan</li>
+                <li><strong>Timestamp</strong> - 6 digit terakhir dari timestamp</li>
+            </ul>
+
+            <div class="info-box">
+                <strong>📌 Catatan:</strong> Protokol yang sudah dibuat dapat dikelola melalui dashboard. Setiap protokol memiliki status yang dapat diperbarui sesuai dengan penggunaan di fasilitas kesehatan.
+            </div>
+        </section>
+    </div>
+
+    <!-- Footer -->
+    <footer>
+        <p>&copy; 2024 UBT System - Medical Protocol Management. All rights reserved.</p>
+    </footer>
+
+    <script>
+        let selectedProvince = '';
+        let partners = [];
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('toggleNewPartner').addEventListener('click', toggleNewPartnerForm);
+            document.getElementById('cancelPartnerBtn').addEventListener('click', cancelNewPartner);
+            document.getElementById('savePartnerBtn').addEventListener('click', saveNewPartner);
+            document.getElementById('quantityInput').addEventListener('change', updateQuantityInfo);
+            updateQuantityInfo();
+        });
+
+        function loadPartners() {
+            selectedProvince = document.getElementById('provinceSelect').value;
+            const partnerSelect = document.getElementById('partnerSelect');
+
+            if (!selectedProvince) {
+                partnerSelect.disabled = true;
+                partnerSelect.innerHTML = '<option value="">-- Pilih Provinsi Terlebih Dahulu --</option>';
+                document.getElementById('toggleNewPartner').disabled = true;
+                validateForm();
+                return;
+            }
+
+            // Fetch partners for selected province
+            fetch(`/api/partner/${selectedProvince}`)
+                .then(res => res.json())
+                .then(data => {
+                    partners = data;
+                    partnerSelect.disabled = false;
+                    document.getElementById('toggleNewPartner').disabled = false;
+                    
+                    partnerSelect.innerHTML = '<option value="">-- Pilih Mitra --</option>';
+                    data.forEach(p => {
+                        const option = document.createElement('option');
+                        option.value = p.id;
+                        option.textContent = `${p.name} (${p.code})`;
+                        partnerSelect.appendChild(option);
+                    });
+
+                    if (data.length === 0) {
+                        partnerSelect.innerHTML = '<option value="">-- Tidak Ada Mitra, Buat yang Baru --</option>';
+                        document.getElementById('newPartnerForm').style.display = 'block';
+                    } else {
+                        document.getElementById('newPartnerForm').style.display = 'none';
+                    }
+
+                    validateForm();
+                })
+                .catch(err => {
+                    console.error('Error loading partners:', err);
+                    partnerSelect.innerHTML = '<option value="">-- Error Memuat Mitra --</option>';
+                });
+        }
+
+        function toggleNewPartnerForm() {
+            const form = document.getElementById('newPartnerForm');
+            form.style.display = form.style.display === 'none' ? 'block' : 'none';
+            if (form.style.display === 'block') {
+                document.getElementById('partner_name').focus();
+            }
+        }
+
+        function cancelNewPartner() {
+            document.getElementById('newPartnerForm').style.display = 'none';
+            document.getElementById('partner_name').value = '';
+            document.getElementById('partner_type').value = '';
+            document.getElementById('partner_code').value = '';
+            document.getElementById('partner_phone').value = '';
+            document.getElementById('partner_address').value = '';
+        }
+
+        async function saveNewPartner() {
+            const name = document.getElementById('partner_name').value.trim();
+            const type = document.getElementById('partner_type').value;
+            const code = document.getElementById('partner_code').value.trim().toUpperCase();
+            const phone = document.getElementById('partner_phone').value.trim();
+            const address = document.getElementById('partner_address').value.trim();
+
+            if (!name || !type || !code) {
+                alert('Nama, jenis, dan kode mitra wajib diisi');
+                return;
+            }
+
+            if (code.length < 3 || code.length > 10) {
+                alert('Kode mitra harus 3-10 karakter');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/partner', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        name,
+                        type,
+                        code,
+                        province_code: selectedProvince,
+                        phone,
+                        address
+                    })
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    alert('Error: ' + (data.error || 'Gagal membuat mitra'));
+                    return;
+                }
+
+                // Add new partner to list and select it
+                const partnerSelect = document.getElementById('partnerSelect');
+                const option = document.createElement('option');
+                option.value = data.partner.id;
+                option.textContent = `${data.partner.name} (${data.partner.code})`;
+                option.selected = true;
+                partnerSelect.appendChild(option);
+
+                // Reset form and hide
+                cancelNewPartner();
+                alert('Mitra berhasil dibuat!');
+                validateForm();
+            } catch (error) {
+                console.error('Error saving partner:', error);
+                alert('Error: ' + error.message);
+            }
+        }
+
+        function updateQuantityInfo() {
+            const qty = parseInt(document.getElementById('quantityInput').value) || 1;
+            const info = document.getElementById('quantityInfo');
+            document.getElementById('quantityNumber').textContent = qty;
+            info.style.display = 'block';
+            validateForm();
+        }
+
+        function validateForm() {
+            const province = document.getElementById('provinceSelect').value;
+            const partner = document.getElementById('partnerSelect').value;
+            const quantity = document.getElementById('quantityInput').value;
+            const submitBtn = document.getElementById('submitBtn');
+
+            const isValid = province && partner && quantity && parseInt(quantity) > 0;
+            submitBtn.disabled = !isValid;
+        }
+
+        function handleSubmit(e) {
+            e.preventDefault();
+
+            const submitBtn = document.getElementById('submitBtn');
+            const loading = document.getElementById('loading');
+
+            submitBtn.disabled = true;
+            loading.style.display = 'flex';
+
+            // Submit form after short delay
+            setTimeout(() => {
+                document.getElementById('protocolForm').submit();
+            }, 500);
+        }
+    </script>
+</body>
+</html>

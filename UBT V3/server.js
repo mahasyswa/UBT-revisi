@@ -771,6 +771,33 @@ app.get(
   }
 );
 
+// ===========================================
+// CREATE PROTOCOL PAGE ROUTE
+// ===========================================
+app.get(
+  "/create-protocol",
+  requireAuth,
+  requireRole("admin", "operator"),
+  logActivity("view_create_protocol"),
+  (req, res) => {
+    try {
+      const successMessage = req.query.success
+        ? decodeURIComponent(req.query.success)
+        : null;
+
+      res.render("create-protocol", {
+        user: req.user || { full_name: req.session.user },
+        provinces,
+        successMessage,
+        req,
+      });
+    } catch (error) {
+      console.error("Create protocol route error:", error);
+      res.status(500).send("Internal server error");
+    }
+  }
+);
+
 // Default analytics fallback
 function getDefaultAnalytics() {
   return {
