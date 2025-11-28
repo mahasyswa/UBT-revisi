@@ -210,12 +210,13 @@ db.serialize(() => {
       const patientColumns = [
         "patient_name",
         "healthcare_facility",
-        "occupation",
+        "employment_status",
         "marital_status",
         "gpa",
         "address",
         "phone",
         "age",
+        "district",
         "notes",
         "used_date",
       ];
@@ -1333,7 +1334,7 @@ app.get(
     const partnerId = req.params.partnerId;
 
     db.all(
-      `SELECT id, code, patient_name, healthcare_facility, occupation, marital_status, gpa, address, phone, age, notes, status, created_at
+      `SELECT id, code, patient_name, healthcare_facility, employment_status, marital_status, gpa, address, phone, age, district, notes, status, created_at
        FROM protocols
        WHERE partner_id = ? AND patient_name IS NOT NULL AND patient_name != ''
        ORDER BY created_at DESC
@@ -1803,13 +1804,15 @@ app.post("/api/update-patient-data/:code", requireAuth, (req, res) => {
   const {
     patient_name,
     healthcare_facility,
-    occupation,
+    employment_status,
     marital_status,
     gpa,
     address,
     phone,
     age,
     notes,
+    province_code,
+    district,
   } = req.body;
 
   // Validate required fields
@@ -1823,25 +1826,29 @@ app.post("/api/update-patient-data/:code", requireAuth, (req, res) => {
     `UPDATE protocols SET 
        patient_name = ?,
        healthcare_facility = ?,
-       occupation = ?,
+       employment_status = ?,
        marital_status = ?,
        gpa = ?,
        address = ?,
        phone = ?,
        age = ?,
        notes = ?,
+       province_code = ?,
+       district = ?,
        updated_by = ?
      WHERE code = ?`,
     [
       patient_name,
       healthcare_facility,
-      occupation || null,
+      employment_status || null,
       marital_status || null,
       gpa || null,
       address || null,
       phone || null,
       age || null,
       notes || null,
+      province_code || null,
+      district || null,
       req.user.id,
       code,
     ],
@@ -1883,8 +1890,8 @@ app.get("/api/patient-data/:code", requireAuth, (req, res) => {
 
   db.get(
     `SELECT 
-       id, code, patient_name, healthcare_facility, occupation,
-       marital_status, gpa, address, phone, age, notes, status, created_at
+       id, code, patient_name, healthcare_facility, employment_status,
+       marital_status, gpa, address, phone, age, district, notes, status, created_at
      FROM protocols
      WHERE code = ?`,
     [code],
