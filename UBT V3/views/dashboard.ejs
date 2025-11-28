@@ -31,6 +31,8 @@
           </div>
         </div>
         <div class="modal-footer">
+          <button class="btn-export" id="modalExportBtn">Export CSV</button>
+          <button class="btn-print" id="modalPrintBtn">Print</button>
           <button class="btn-secondary" id="modalCloseBtn">Close</button>
         </div>
       </div>
@@ -605,13 +607,21 @@
       }
 
       .patient-modal .modal-header .title {
-        font-size: 16px;
+        font-size: 14px;
         font-weight: 700;
+        opacity: 0.95;
       }
 
       .patient-modal .modal-header .patient-name {
-        font-size: 20px;
-        font-weight: 800;
+        font-size: 22px;
+        font-weight: 900;
+        margin-top: 6px;
+        letter-spacing: 0.2px;
+      }
+
+      .patient-modal .modal-header .patient-meta {
+        font-size: 12px;
+        opacity: 0.95;
         margin-top: 6px;
       }
 
@@ -694,6 +704,26 @@
         color: rgba(255,255,255,0.95);
         font-size: 18px;
         cursor: pointer;
+      }
+
+      .btn-export {
+        background: linear-gradient(90deg,#ff6fa3,#e0007a);
+        color: #fff;
+        padding: 8px 12px;
+        border-radius: 8px;
+        border: none;
+        cursor: pointer;
+        font-weight:700;
+      }
+
+      .btn-print {
+        background: #fff;
+        color: #7b1fa2;
+        padding: 8px 12px;
+        border-radius: 8px;
+        border: 1px solid #e9d7ec;
+        cursor: pointer;
+        font-weight:700;
       }
     </style>
   </head>
@@ -1597,6 +1627,8 @@
         if (e.target === patientModalBackdrop) closeModal();
       });
 
+      let lastSelectedPatient = null;
+
       function selectPatient(code, listItem) {
         // highlight
         document.querySelectorAll('.patient-item').forEach(el => el.classList.remove('active'));
@@ -1611,6 +1643,7 @@
               return;
             }
             const d = resp.data;
+            lastSelectedPatient = d;
             patientModalName.textContent = d.patient_name || 'Unknown';
             patientModalCode.textContent = d.code || '';
 
@@ -1650,6 +1683,90 @@
           });
       }
 
+      // Export selected patient data as CSV
+      function exportPatientCSV() {
+        const d = lastSelectedPatient;
+        if (!d) {
+          showToast('No patient selected to export', 'error');
+          return;
+        }
+
+        const rows = [
+          ['Field','Value'],
+          ['Code', d.code || ''],
+          ['Name', d.patient_name || ''],
+          ['Healthcare Facility', d.healthcare_facility || ''],
+          ['Occupation', d.occupation || ''],
+          ['Marital Status', d.marital_status || ''],
+          ['GPA', d.gpa || ''],
+          ['Address', d.address || ''],
+          ['Phone', d.phone || ''],
+          ['Age', d.age || ''],
+          ['Provider', d.provider || ''],
+          ['Created At', d.created_at || ''],
+          ['Notes', d.notes || '']
+        ];
+
+        const csv = rows.map(r => r.map(c => '"' + String(c).replace(/"/g,'""') + '"').join(',')).join('\n');
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `patient-${d.code || 'report'}.csv`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      }
+
+      // Print selected patient detail
+      function printPatientReport() {
+        const d = lastSelectedPatient;
+        if (!d) {
+          showToast('No patient selected to print', 'error');
+          return;
+        }
+
+        const printWindow = window.open('', '_blank', 'noopener');
+        if (!printWindow) {
+          showToast('Popup blocked. Allow popups to enable printing.', 'error');
+          return;
+        }
+
+        const content = `
+          <html>
+            <head>
+              <title>Patient Report - ${d.code || ''}</title>
+              <style>
+                body { font-family: Arial, Helvetica, sans-serif; padding:20px; color:#222 }
+                .header { background: linear-gradient(90deg,#ff6fa3,#7b1fa2); padding:18px; color:#fff; border-radius:6px }
+                .header h1 { margin:0; font-size:20px }
+                .header p { margin:4px 0 0; font-size:13px; opacity:0.95 }
+                .info { margin-top:14px; display:grid; grid-template-columns:1fr 1fr; gap:12px }
+                .info .box { padding:10px; border-radius:6px; background:#f8f8f8 }
+                .gpa { margin-top:12px; padding:12px; border-radius:8px; color:#fff; background: linear-gradient(90deg,#ff6fa3,#7b1fa2); display:flex; gap:10px; }
+              </style>
+            </head>
+            <body>
+              <div class="header"><h1>OBGYN Patient Data</h1><p>${d.patient_name || ''} — ${d.code || ''}</p></div>
+              <div class="info">
+                <div class="box"><strong>Healthcare Facility</strong><div>${d.healthcare_facility || '-'}</div></div>
+                <div class="box"><strong>Occupation</strong><div>${d.occupation || '-'}</div></div>
+                <div class="box"><strong>Marital Status</strong><div>${d.marital_status || '-'}</div></div>
+                <div class="box"><strong>Province</strong><div>${d.province_code || '-'}</div></div>
+              </div>
+              <div class="gpa"><div style="flex:1;text-align:center"><div style="font-size:20px;font-weight:800">${(d.gpa||'').split(/[ ,\/]+/)[0]||'-'}</div><div>G</div></div><div style="flex:1;text-align:center"><div style="font-size:20px;font-weight:800">${(d.gpa||'').split(/[ ,\/]+/)[1]||'-'}</div><div>P</div></div><div style="flex:1;text-align:center"><div style="font-size:20px;font-weight:800">${(d.gpa||'').split(/[ ,\/]+/)[2]||'-'}</div><div>A</div></div></div>
+              <div style="margin-top:12px"><strong>Notes</strong><div style="margin-top:6px">${d.notes || '-'}</div></div>
+              <script>setTimeout(() => { window.print(); setTimeout(()=>window.close(), 250); }, 300);</script>
+            </body>
+          </html>
+        `;
+
+        printWindow.document.open();
+        printWindow.document.write(content);
+        printWindow.document.close();
+      }
+
       // Attach click handlers for the detail buttons (delegation)
       document.addEventListener('click', function(e) {
         const btn = e.target.closest('.btn-detail');
@@ -1658,6 +1775,10 @@
           if (partnerId) openPatientModal(partnerId);
         }
       });
+
+      // Wire modal export/print buttons
+      document.getElementById('modalExportBtn').addEventListener('click', exportPatientCSV);
+      document.getElementById('modalPrintBtn').addEventListener('click', printPatientReport);
     </script>
   </body>
 </html>
