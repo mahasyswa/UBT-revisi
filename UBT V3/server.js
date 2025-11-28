@@ -868,6 +868,7 @@ function getAdvancedAnalytics(callback) {
           db.all(
             `
         SELECT 
+          pt.id as partner_id,
           pt.name as partner_name,
           pt.type as partner_type,
           pt.code as partner_code,
@@ -1322,6 +1323,32 @@ app.get("/api/partner/:provinceCode", requireAuth, (req, res) => {
     }
   );
 });
+
+// Get list of protocols with patient data for a partner
+app.get(
+  "/api/partner/:partnerId/patients",
+  requireAuth,
+  requireRole("admin", "operator"),
+  (req, res) => {
+    const partnerId = req.params.partnerId;
+
+    db.all(
+      `SELECT id, code, patient_name, healthcare_facility, occupation, marital_status, gpa, address, phone, age, notes, status, created_at
+       FROM protocols
+       WHERE partner_id = ? AND patient_name IS NOT NULL AND patient_name != ''
+       ORDER BY created_at DESC
+       LIMIT 200`,
+      [partnerId],
+      (err, rows) => {
+        if (err) {
+          console.error("Error fetching partner patients:", err);
+          return res.status(500).json({ error: "Database error" });
+        }
+        res.json(rows || []);
+      }
+    );
+  }
+);
 
 app.post(
   "/api/partner",

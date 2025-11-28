@@ -5,8 +5,36 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes, viewport-fit=cover" />
     <title>Dashboard - Barcode Protocol</title>
     
-    <!-- PWA Meta Tags -->
-    <link rel="manifest" href="/manifest.json">
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="/toast.js"></script>
+
+    <!-- Patient Detail Modal -->
+    <div class="modal-backdrop" id="patientModalBackdrop">
+      <div class="patient-modal" role="dialog" aria-modal="true" aria-labelledby="patientModalTitle">
+        <div class="modal-header">
+          <div>
+            <div class="title">OBGYN Patient Data</div>
+            <div id="patientModalName" class="patient-name">&nbsp;</div>
+            <div id="patientModalCode" style="font-size:12px; opacity:0.9; margin-top:4px;">&nbsp;</div>
+          </div>
+          <div>
+            <button class="modal-close" id="closePatientModal" aria-label="Close">✕</button>
+          </div>
+        </div>
+        <div class="modal-body">
+          <div class="patient-list" id="patientList">
+            <!-- list rendered here -->
+            <div style="padding:8px;color:#6c757d;font-size:13px;">Loading...</div>
+          </div>
+          <div class="patient-detail" id="patientDetail">
+            <div style="color:#666;padding:8px;font-size:13px;">Select a patient to see details</div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn-secondary" id="modalCloseBtn">Close</button>
+        </div>
+      </div>
+    </div>
   <meta name="theme-color" content="#106EBE">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -544,6 +572,129 @@
           grid-template-columns: 1fr;
         }
       }
+      /* Patient detail modal */
+      .modal-backdrop {
+        position: fixed;
+        inset: 0;
+        background: rgba(0,0,0,0.35);
+        display: none;
+        align-items: center;
+        justify-content: center;
+        z-index: 1200;
+        backdrop-filter: blur(3px);
+      }
+
+      .patient-modal {
+        width: 90%;
+        max-width: 1100px;
+        background: #fff;
+        border-radius: 12px;
+        box-shadow: 0 20px 60px rgba(0,0,0,0.25);
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+      }
+
+      .patient-modal .modal-header {
+        padding: 20px 24px;
+        background: linear-gradient(90deg, #ff6fa3 0%, #7b1fa2 100%);
+        color: white;
+        display:flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+
+      .patient-modal .modal-header .title {
+        font-size: 16px;
+        font-weight: 700;
+      }
+
+      .patient-modal .modal-header .patient-name {
+        font-size: 20px;
+        font-weight: 800;
+        margin-top: 6px;
+      }
+
+      .patient-modal .modal-body {
+        display: grid;
+        grid-template-columns: 320px 1fr;
+        gap: 18px;
+        padding: 18px;
+        background: linear-gradient(180deg, #fff 0%, #fff 100%);
+      }
+
+      .patient-list {
+        border-right: 1px solid #f0f0f0;
+        padding-right: 8px;
+        overflow:auto;
+        max-height: 60vh;
+      }
+
+      .patient-list .patient-item {
+        padding: 10px 8px;
+        border-radius: 8px;
+        cursor: pointer;
+      }
+
+      .patient-list .patient-item:hover,
+      .patient-list .patient-item.active {
+        background: #fff0f6;
+      }
+
+      .patient-detail {
+        padding: 4px 8px;
+        overflow:auto;
+        max-height: 60vh;
+      }
+
+      .info-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 12px;
+        margin-bottom: 12px;
+      }
+
+      .info-box {
+        background: #fafafa;
+        border-radius: 8px;
+        padding: 8px 10px;
+        font-size: 13px;
+      }
+
+      .info-box .label { color:#666; font-size:12px; }
+      .info-box .value { font-weight:700; color:#333; margin-top:4px; display:block; }
+
+      .gpa-box {
+        display:flex;
+        gap:12px;
+        align-items:center;
+        justify-content:flex-start;
+        padding:14px;
+        border-radius:10px;
+        color:#fff;
+        margin-bottom:12px;
+        background: linear-gradient(90deg,#ff6fa3 0%, #7b1fa2 100%);
+      }
+
+      .gpa-item { text-align:center; flex:1 }
+      .gpa-item .num { font-size:20px; font-weight:800 }
+      .gpa-item .label { font-size:12px; opacity:0.95 }
+
+      .modal-footer {
+        padding: 12px 18px;
+        border-top: 1px solid #f0f0f0;
+        display:flex;
+        justify-content:flex-end;
+        gap:8px;
+      }
+
+      .modal-close {
+        background: transparent;
+        border: none;
+        color: rgba(255,255,255,0.95);
+        font-size: 18px;
+        cursor: pointer;
+      }
     </style>
   </head>
   <body>
@@ -865,7 +1016,8 @@
                 <thead>
                   <tr>
                     <th style="text-align:left; padding:10px; background:#f8f9fa; border-bottom:2px solid #e9ecef;">Partner</th>
-                    <th style="text-align:left; padding:10px; background:#f8f9fa; border-bottom:2px solid #e9ecef;">Patients With Data</th>
+                    <th style="text-align:left; padding:10px; background:#f8f9fa; border-bottom:2px solid #e9ecef;">Patients Data</th>
+                    <th style="text-align:left; padding:10px; background:#f8f9fa; border-bottom:2px solid #e9ecef;">Detail</th>
                     <th style="text-align:left; padding:10px; background:#f8f9fa; border-bottom:2px solid #e9ecef;">Facility Type</th>
                     <th style="text-align:left; padding:10px; background:#f8f9fa; border-bottom:2px solid #e9ecef;">Province</th>
                     <th style="text-align:left; padding:10px; background:#f8f9fa; border-bottom:2px solid #e9ecef;">Total Equipment</th>
@@ -879,6 +1031,7 @@
                     <tr>
                       <td style="padding:10px; border-bottom:1px solid #f1f1f1;"><strong><%= pp.partner_name %></strong> <small style="color:#666;">(<%= pp.partner_code %>)</small></td>
                       <td style="padding:10px; border-bottom:1px solid #f1f1f1;"><%= Number(pp.patients_with_data || 0).toLocaleString('id-ID') %></td>
+                      <td style="padding:10px; border-bottom:1px solid #f1f1f1;"><button class="btn-detail" data-partner-id="<%= pp.partner_id %>">View</button></td>
                       <td style="padding:10px; border-bottom:1px solid #f1f1f1;"><%= pp.partner_type ? pp.partner_type.replace('_',' ').toUpperCase() : '-' %></td>
                       <td style="padding:10px; border-bottom:1px solid #f1f1f1;"><%= pp.province_code || '-' %></td>
                       <td style="padding:10px; border-bottom:1px solid #f1f1f1;"><%= Number(pp.total_allocated || 0).toLocaleString('id-ID') %></td>
@@ -1391,6 +1544,120 @@
       }
       
       // (Usage report UI & helpers removed)
+
+      // Patient detail modal handling
+      const patientModalBackdrop = document.getElementById('patientModalBackdrop');
+      const patientListEl = document.getElementById('patientList');
+      const patientDetailEl = document.getElementById('patientDetail');
+      const patientModalName = document.getElementById('patientModalName');
+      const patientModalCode = document.getElementById('patientModalCode');
+      const closePatientModal = document.getElementById('closePatientModal');
+      const modalCloseBtn = document.getElementById('modalCloseBtn');
+
+      function openPatientModal(partnerId) {
+        // show backdrop
+        patientModalBackdrop.style.display = 'flex';
+        patientListEl.innerHTML = '<div style="padding:8px;color:#6c757d;font-size:13px;">Loading...</div>';
+        patientDetailEl.innerHTML = '<div style="color:#666;padding:8px;font-size:13px;">Select a patient to see details</div>';
+        patientModalName.textContent = '';
+        patientModalCode.textContent = '';
+
+        fetch(`/api/partner/${partnerId}/patients`)
+          .then(r => r.json())
+          .then(list => {
+            if (!list || list.length === 0) {
+              patientListEl.innerHTML = '<div style="padding:8px;color:#6c757d;">No patient records found for this partner.</div>';
+              return;
+            }
+
+            patientListEl.innerHTML = '';
+            list.forEach((p, idx) => {
+              const item = document.createElement('div');
+              item.className = 'patient-item';
+              item.dataset.code = p.code;
+              item.innerHTML = `<div style="font-weight:700">${p.patient_name || '—'}</div><div style="font-size:12px;color:#666">${p.code} • ${new Date(p.created_at).toLocaleString('id-ID')}</div>`;
+              item.addEventListener('click', () => selectPatient(p.code, item));
+              patientListEl.appendChild(item);
+              if (idx === 0) selectPatient(p.code, item);
+            });
+          })
+          .catch(err => {
+            console.error('Error loading partner patients:', err);
+            patientListEl.innerHTML = '<div style="padding:8px;color:#c53030;">Error loading patient list</div>';
+          });
+      }
+
+      function closeModal() {
+        patientModalBackdrop.style.display = 'none';
+      }
+
+      closePatientModal.addEventListener('click', closeModal);
+      modalCloseBtn.addEventListener('click', closeModal);
+      patientModalBackdrop.addEventListener('click', function(e) {
+        if (e.target === patientModalBackdrop) closeModal();
+      });
+
+      function selectPatient(code, listItem) {
+        // highlight
+        document.querySelectorAll('.patient-item').forEach(el => el.classList.remove('active'));
+        if (listItem) listItem.classList.add('active');
+
+        patientDetailEl.innerHTML = '<div style="padding:8px;color:#6c757d;">Loading details...</div>';
+        fetch(`/api/patient-data/${encodeURIComponent(code)}`)
+          .then(r => r.json())
+          .then(resp => {
+            if (!resp || !resp.success) {
+              patientDetailEl.innerHTML = '<div style="padding:8px;color:#c53030;">Error loading patient data</div>';
+              return;
+            }
+            const d = resp.data;
+            patientModalName.textContent = d.patient_name || 'Unknown';
+            patientModalCode.textContent = d.code || '';
+
+            // build detail HTML
+            const html = [];
+            html.push('<div class="info-grid">');
+            html.push(`<div class="info-box"><div class="label">Healthcare Facility</div><div class="value">${d.healthcare_facility || '-'}</div></div>`);
+            html.push(`<div class="info-box"><div class="label">Occupation</div><div class="value">${d.occupation || '-'}</div></div>`);
+            html.push(`<div class="info-box"><div class="label">Employment Status</div><div class="value">${d.employment_status || '-'}</div></div>`);
+            html.push(`<div class="info-box"><div class="label">Marital Status</div><div class="value">${d.marital_status || '-'}</div></div>`);
+            html.push(`<div class="info-box"><div class="label">Province</div><div class="value">${d.province_code || '-'}</div></div>`);
+            html.push(`<div class="info-box"><div class="label">District / City</div><div class="value">${d.district || '-'}</div></div>`);
+            html.push(`<div class="info-box" style="grid-column:1 / -1"><div class="label">Full Address</div><div class="value">${d.address || '-'}</div></div>`);
+            html.push(`<div class="info-box"><div class="label">Service Type</div><div class="value">${d.service_type || '-'}</div></div>`);
+            html.push('</div>');
+
+            // GPA section
+            const gpa = (d.gpa || '').split(/[,/\s]+/).slice(0,3);
+            const G = gpa[0] || '-';
+            const P = gpa[1] || '-';
+            const A = gpa[2] || '-';
+
+            html.push(`<div class="gpa-box"><div class="gpa-item"><div class="num">${G}</div><div class="label">G (Gravida)</div></div><div class="gpa-item"><div class="num">${P}</div><div class="label">P (Para)</div></div><div class="gpa-item"><div class="num">${A}</div><div class="label">A (Abortus)</div></div></div>`);
+
+            html.push('<div class="info-grid">');
+            html.push(`<div class="info-box"><div class="label">Healthcare Provider</div><div class="value">${d.provider || '-'}</div></div>`);
+            html.push(`<div class="info-box"><div class="label">Created At</div><div class="value">${new Date(d.created_at).toLocaleString('id-ID', { dateStyle: 'short', timeStyle: 'short' })}</div></div>`);
+            html.push('</div>');
+
+            html.push(`<div style="margin-top:8px;color:#444"><strong>Notes</strong><div style="margin-top:6px;color:#666">${d.notes || '-'}</div></div>`);
+
+            patientDetailEl.innerHTML = html.join('');
+          })
+          .catch(err => {
+            console.error('Error fetching patient data:', err);
+            patientDetailEl.innerHTML = '<div style="padding:8px;color:#c53030;">Error loading patient details</div>';
+          });
+      }
+
+      // Attach click handlers for the detail buttons (delegation)
+      document.addEventListener('click', function(e) {
+        const btn = e.target.closest('.btn-detail');
+        if (btn) {
+          const partnerId = btn.dataset.partnerId;
+          if (partnerId) openPatientModal(partnerId);
+        }
+      });
     </script>
   </body>
 </html>
