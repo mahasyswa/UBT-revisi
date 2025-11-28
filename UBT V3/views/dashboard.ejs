@@ -1443,13 +1443,13 @@
             const html = [];
             html.push('<div class="info-grid">');
             html.push(`<div class="info-box"><div class="label">🏥 Healthcare Facility</div><div class="value">${d.healthcare_facility || '-'}</div></div>`);
-            html.push(`<div class="info-box"><div class="label">💼 Occupation</div><div class="value">${d.occupation || '-'}</div></div>`);
             html.push(`<div class="info-box"><div class="label">📋 Employment Status</div><div class="value">${d.employment_status || '-'}</div></div>`);
             html.push(`<div class="info-box"><div class="label">💍 Marital Status</div><div class="value">${d.marital_status || '-'}</div></div>`);
             html.push(`<div class="info-box"><div class="label">📍 Province</div><div class="value">${d.province_code || '-'}</div></div>`);
             html.push(`<div class="info-box"><div class="label">🗺️ District / City</div><div class="value">${d.district || '-'}</div></div>`);
+            html.push(`<div class="info-box"><div class="label">📱 Age</div><div class="value">${d.age || '-'} years</div></div>`);
             html.push(`<div class="info-box" style="grid-column:1 / -1"><div class="label">🏠 Full Address</div><div class="value">${d.address || '-'}</div></div>`);
-            html.push(`<div class="info-box"><div class="label">🩺 Service Type</div><div class="value">${d.service_type || '-'}</div></div>`);
+            html.push(`<div class="info-box"><div class="label">☎️ Phone</div><div class="value">${d.phone || '-'}</div></div>`);
             html.push('</div>');
 
             // GPA section
@@ -1460,12 +1460,9 @@
 
             html.push(`<div class="gpa-box"><div class="gpa-item"><div class="num">${G}</div><div class="label">G (Gravida)</div></div><div class="gpa-item"><div class="num">${P}</div><div class="label">P (Para)</div></div><div class="gpa-item"><div class="num">${A}</div><div class="label">A (Abortus)</div></div></div>`);
 
-            html.push('<div class="info-grid">');
-            html.push(`<div class="info-box"><div class="label">👨‍⚕️ Healthcare Provider</div><div class="value">${d.provider || '-'}</div></div>`);
-            html.push(`<div class="info-box"><div class="label">📅 Created At</div><div class="value">${new Date(d.created_at).toLocaleString('id-ID', { dateStyle: 'short', timeStyle: 'short' })}</div></div>`);
-            html.push('</div>');
+            html.push(`<div style="margin-top:8px;color:#999;font-size:12px">📅 ${new Date(d.created_at).toLocaleString('id-ID', { dateStyle: 'short', timeStyle: 'short' })}</div>`);
 
-            html.push(`<div style="margin-top:8px;color:#444"><strong>Notes</strong><div style="margin-top:6px;color:#666">${d.notes || '-'}</div></div>`);
+            html.push(`<div style="margin-top:12px;color:#444"><strong>📝 Notes</strong><div style="margin-top:6px;color:#666;font-size:13px">${d.notes || '-'}</div></div>`);
 
             patientDetailEl.innerHTML = html.join('');
           })
@@ -1488,13 +1485,14 @@
           ['Code', d.code || ''],
           ['Name', d.patient_name || ''],
           ['Healthcare Facility', d.healthcare_facility || ''],
-          ['Occupation', d.occupation || ''],
+          ['Employment Status', d.employment_status || ''],
           ['Marital Status', d.marital_status || ''],
-          ['GPA', d.gpa || ''],
+          ['Province', d.province_code || ''],
+          ['District / City', d.district || ''],
+          ['Age', d.age || ''],
           ['Address', d.address || ''],
           ['Phone', d.phone || ''],
-          ['Age', d.age || ''],
-          ['Provider', d.provider || ''],
+          ['GPA', d.gpa || ''],
           ['Created At', d.created_at || ''],
           ['Notes', d.notes || '']
         ];
