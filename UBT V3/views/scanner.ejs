@@ -67,8 +67,85 @@
                 <div class="action-buttons" id="action-buttons" style="display: none;">
                     <button id="mark-terpakai" class="btn-action btn-terpakai">✅ Mark as Used</button>
                     <button id="mark-delivered" class="btn-action btn-delivered">🚚 Mark as Delivered</button>
+                    <button id="add-patient-data" class="btn-action btn-secondary">👤 Add Patient Data</button>
                     <button id="scan-another" class="btn-action btn-secondary">🔄 Scan Another</button>
                 </div>
+            </div>
+        </div>
+
+        <!-- Patient Data Entry Form -->
+        <div id="patient-form-container" class="patient-form-container" style="display: none;">
+            <div class="form-card">
+                <div class="form-header">
+                    <h3>👤 Patient Information</h3>
+                    <p id="form-code" style="font-size:12px;color:#666;"></p>
+                </div>
+                <form id="patient-data-form" style="display: flex; flex-direction: column; gap: 10px;">
+                    <div class="form-group">
+                        <label>Patient Name *</label>
+                        <input type="text" name="patient_name" placeholder="Enter patient name" required />
+                    </div>
+                    <div class="form-group">
+                        <label>Healthcare Facility *</label>
+                        <input type="text" name="healthcare_facility" placeholder="Enter healthcare facility" required />
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Occupation</label>
+                            <input type="text" name="occupation" placeholder="Enter occupation" />
+                        </div>
+                        <div class="form-group">
+                            <label>Employment Status</label>
+                            <input type="text" name="employment_status" placeholder="e.g., Active" />
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Marital Status</label>
+                            <select name="marital_status">
+                                <option value="">Select status</option>
+                                <option value="Single">Single</option>
+                                <option value="Married">Married</option>
+                                <option value="Divorced">Divorced</option>
+                                <option value="Widowed">Widowed</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Province</label>
+                            <input type="text" name="province_code" placeholder="Province code" />
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>District/City</label>
+                            <input type="text" name="district" placeholder="District/City" />
+                        </div>
+                        <div class="form-group">
+                            <label>Age</label>
+                            <input type="number" name="age" placeholder="Age" min="0" max="150" />
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Full Address</label>
+                        <textarea name="address" placeholder="Enter full address" rows="2"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>Phone</label>
+                        <input type="tel" name="phone" placeholder="Phone number" />
+                    </div>
+                    <div class="form-group">
+                        <label>GPA (Gravida, Para, Abortus)</label>
+                        <input type="text" name="gpa" placeholder="e.g., 3,2,0" />
+                    </div>
+                    <div class="form-group">
+                        <label>Service Type / Medical Actions</label>
+                        <textarea name="notes" placeholder="Describe medical actions/procedures performed" rows="2"></textarea>
+                    </div>
+                    <div class="form-actions">
+                        <button type="submit" class="btn-submit" style="flex: 1;">💾 Save Patient Data</button>
+                        <button type="button" class="btn-secondary" id="cancel-form" style="flex: 1;">Cancel</button>
+                    </div>
+                </form>
             </div>
         </div>
 
@@ -158,6 +235,9 @@
             const resultContent = document.getElementById('result-content');
             const actionButtons = document.getElementById('action-buttons');
             
+            // Track the scanned code for patient form
+            currentScannedCode = protocol.code;
+            
             resultContent.innerHTML = `
                 <div class="protocol-info">
                     <div class="info-row">
@@ -179,15 +259,19 @@
                 </div>
             `;
             
-            // Show action buttons only if not already terpakai
+            // Show action buttons
             if (protocol.status !== 'terpakai') {
                 actionButtons.style.display = 'block';
                 
                 // Store current code for actions
                 document.getElementById('mark-terpakai').onclick = () => confirmAction(protocol.code, 'mark_terpakai');
                 document.getElementById('mark-delivered').onclick = () => confirmAction(protocol.code, 'mark_delivered');
+                document.getElementById('add-patient-data').style.display = 'block';
                 } else {
-                actionButtons.style.display = 'none';
+                actionButtons.style.display = 'block';
+                document.getElementById('mark-terpakai').style.display = 'none';
+                document.getElementById('mark-delivered').style.display = 'none';
+                document.getElementById('add-patient-data').style.display = 'block';
                 showToast('This protocol is already marked as Used', 'info');
             }
             
@@ -312,9 +396,106 @@
 
         document.getElementById('scan-another').addEventListener('click', () => {
             document.getElementById('scan-result').style.display = 'none';
+            document.getElementById('patient-form-container').style.display = 'none';
             document.getElementById('manual-code').value = '';
             startScanning();
         });
+
+        // Track current code for patient form
+        let currentScannedCode = null;
+
+        // Patient form handlers
+        const addPatientDataBtn = document.getElementById('add-patient-data');
+        const patientForm = document.getElementById('patient-data-form');
+        const cancelFormBtn = document.getElementById('cancel-form');
+        const patientFormContainer = document.getElementById('patient-form-container');
+        const formCodeDisplay = document.getElementById('form-code');
+
+        if (addPatientDataBtn) {
+            addPatientDataBtn.addEventListener('click', () => {
+                if (!currentScannedCode) {
+                    showToast('No code scanned', 'error');
+                    return;
+                }
+                document.getElementById('scan-result').style.display = 'none';
+                patientFormContainer.style.display = 'block';
+                formCodeDisplay.textContent = `Code: ${currentScannedCode}`;
+                // Reset form
+                patientForm.reset();
+                // Focus first input
+                patientForm.querySelector('input[name="patient_name"]').focus();
+            });
+        }
+
+        if (cancelFormBtn) {
+            cancelFormBtn.addEventListener('click', () => {
+                patientFormContainer.style.display = 'none';
+                document.getElementById('scan-result').style.display = 'block';
+            });
+        }
+
+        if (patientForm) {
+            patientForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                
+                if (!currentScannedCode) {
+                    showToast('Error: No code selected', 'error');
+                    return;
+                }
+
+                const formData = {
+                    patient_name: patientForm.querySelector('input[name="patient_name"]').value.trim(),
+                    healthcare_facility: patientForm.querySelector('input[name="healthcare_facility"]').value.trim(),
+                    occupation: patientForm.querySelector('input[name="occupation"]').value.trim(),
+                    employment_status: patientForm.querySelector('input[name="employment_status"]').value.trim(),
+                    marital_status: patientForm.querySelector('select[name="marital_status"]').value.trim(),
+                    province_code: patientForm.querySelector('input[name="province_code"]').value.trim(),
+                    district: patientForm.querySelector('input[name="district"]').value.trim(),
+                    age: patientForm.querySelector('input[name="age"]').value.trim(),
+                    address: patientForm.querySelector('textarea[name="address"]').value.trim(),
+                    phone: patientForm.querySelector('input[name="phone"]').value.trim(),
+                    gpa: patientForm.querySelector('input[name="gpa"]').value.trim(),
+                    notes: patientForm.querySelector('textarea[name="notes"]').value.trim(),
+                };
+
+                // Validate required fields
+                if (!formData.patient_name || !formData.healthcare_facility) {
+                    showToast('Patient name and healthcare facility are required', 'error');
+                    return;
+                }
+
+                showLoading(true);
+
+                try {
+                    const response = await fetch(`/api/update-patient-data/${encodeURIComponent(currentScannedCode)}`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify(formData)
+                    });
+
+                    const data = await response.json();
+                    showLoading(false);
+
+                    if (response.ok && data.success) {
+                        showToast(`Patient data saved successfully!`, 'success');
+                        patientFormContainer.style.display = 'none';
+                        // Show scan result again
+                        document.getElementById('scan-result').style.display = 'block';
+                        // Update result with confirmation
+                        const resultContent = document.getElementById('result-content');
+                        resultContent.innerHTML += `<div style="margin-top:15px;padding:12px;background:#f0fff4;border-left:4px solid #48bb78;color:#2f855a;border-radius:4px;"><strong>✅ Patient data saved</strong></div>`;
+                    } else {
+                        showToast(data.error || 'Failed to save patient data', 'error');
+                    }
+                } catch (err) {
+                    showLoading(false);
+                    console.error('Error saving patient data:', err);
+                    showToast('Error saving patient data. Check your connection.', 'error');
+                }
+            });
+        }
 
     // Initialize on load
     initScanner();
