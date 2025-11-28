@@ -1541,11 +1541,14 @@
               <div class="header"><h1>OBGYN Patient Data</h1><p>${d.patient_name || ''} — ${d.code || ''}</p></div>
               <div class="info">
                 <div class="box"><strong>Healthcare Facility</strong><div>${d.healthcare_facility || '-'}</div></div>
-                <div class="box"><strong>Occupation</strong><div>${d.occupation || '-'}</div></div>
+                <div class="box"><strong>Employment Status</strong><div>${d.employment_status || '-'}</div></div>
                 <div class="box"><strong>Marital Status</strong><div>${d.marital_status || '-'}</div></div>
                 <div class="box"><strong>Province</strong><div>${d.province_code || '-'}</div></div>
+                <div class="box"><strong>Age</strong><div>${d.age || '-'} years</div></div>
+                <div class="box"><strong>Phone</strong><div>${d.phone || '-'}</div></div>
               </div>
-              <div class="gpa"><div style="flex:1;text-align:center"><div style="font-size:20px;font-weight:800">${(d.gpa||'').split(/[ ,\/]+/)[0]||'-'}</div><div>G</div></div><div style="flex:1;text-align:center"><div style="font-size:20px;font-weight:800">${(d.gpa||'').split(/[ ,\/]+/)[1]||'-'}</div><div>P</div></div><div style="flex:1;text-align:center"><div style="font-size:20px;font-weight:800">${(d.gpa||'').split(/[ ,\/]+/)[2]||'-'}</div><div>A</div></div></div>
+              <div class="gpa"><div style="flex:1;text-align:center"><div style="font-size:20px;font-weight:800">${(d.gpa||'').split(/[ ,\/]+/)[0]||'-'}</div><div>Gravida</div></div><div style="flex:1;text-align:center"><div style="font-size:20px;font-weight:800">${(d.gpa||'').split(/[ ,\/]+/)[1]||'-'}</div><div>Para</div></div><div style="flex:1;text-align:center"><div style="font-size:20px;font-weight:800">${(d.gpa||'').split(/[ ,\/]+/)[2]||'-'}</div><div>Abortus</div></div></div>
+              <div style="margin-top:12px"><strong>Address</strong><div style="margin-top:6px">${d.address || '-'}</div></div>
               <div style="margin-top:12px"><strong>Notes</strong><div style="margin-top:6px">${d.notes || '-'}</div></div>
               <script>setTimeout(() => { window.print(); setTimeout(()=>window.close(), 250); }, 300);</script>
             </body>
@@ -1574,20 +1577,21 @@
               return;
             }
             const rows = [
-              ['Code','Patient Name','Healthcare Facility','Occupation','Marital Status','GPA','Address','Phone','Age','Provider','Status','Created At','Notes']
+              ['Code','Patient Name','Healthcare Facility','Employment Status','Marital Status','Province','District/City','Age','Phone','GPA','Address','Status','Created At','Notes']
             ];
             patients.forEach(p => {
               rows.push([
                 p.code || '',
                 p.patient_name || '',
                 p.healthcare_facility || '',
-                p.occupation || '',
+                p.employment_status || '',
                 p.marital_status || '',
+                p.province_code || '',
+                p.district || '',
+                p.age || '',
+                p.phone || '',
                 p.gpa || '',
                 p.address || '',
-                p.phone || '',
-                p.age || '',
-                p.provider || '',
                 p.status || '',
                 p.created_at || '',
                 p.notes || ''
