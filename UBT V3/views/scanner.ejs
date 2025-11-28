@@ -91,10 +91,6 @@
                     </div>
                     <div class="form-row">
                         <div class="form-group">
-                            <label>Occupation</label>
-                            <input type="text" name="occupation" placeholder="Enter occupation" />
-                        </div>
-                        <div class="form-group">
                             <label>Employment Status</label>
                             <input type="text" name="employment_status" placeholder="e.g., Active" />
                         </div>
@@ -112,7 +108,7 @@
                         </div>
                         <div class="form-group">
                             <label>Province</label>
-                            <input type="text" name="province_code" placeholder="Province code" />
+                            <input type="text" name="province_code" placeholder="Province" />
                         </div>
                     </div>
                     <div class="form-row">
@@ -133,9 +129,58 @@
                         <label>Phone</label>
                         <input type="tel" name="phone" placeholder="Phone number" />
                     </div>
-                    <div class="form-group">
-                        <label>GPA (Gravida, Para, Abortus)</label>
-                        <input type="text" name="gpa" placeholder="e.g., 3,2,0" />
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Gravida</label>
+                            <select name="gravida">
+                                <option value="">Select</option>
+                                <option value="0">0</option>
+                                <option value="1">1</option>
+                                <option value="2">2</option>
+                                <option value="3">3</option>
+                                <option value="4">4</option>
+                                <option value="5">5</option>
+                                <option value="6">6</option>
+                                <option value="7">7</option>
+                                <option value="8">8</option>
+                                <option value="9">9</option>
+                                <option value="10">10+</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Para</label>
+                            <select name="para">
+                                <option value="">Select</option>
+                                <option value="0">0</option>
+                                <option value="1">1</option>
+                                <option value="2">2</option>
+                                <option value="3">3</option>
+                                <option value="4">4</option>
+                                <option value="5">5</option>
+                                <option value="6">6</option>
+                                <option value="7">7</option>
+                                <option value="8">8</option>
+                                <option value="9">9</option>
+                                <option value="10">10+</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Abortus</label>
+                            <select name="abortus">
+                                <option value="">Select</option>
+                                <option value="0">0</option>
+                                <option value="1">1</option>
+                                <option value="2">2</option>
+                                <option value="3">3</option>
+                                <option value="4">4</option>
+                                <option value="5">5</option>
+                                <option value="6">6</option>
+                                <option value="7">7</option>
+                                <option value="8">8</option>
+                                <option value="9">9</option>
+                                <option value="10">10+</option>
+                            </select>
+                        </div>
                     </div>
                     <div class="form-group">
                         <label>Service Type / Medical Actions</label>
@@ -443,10 +488,13 @@
                     return;
                 }
 
+                const gravida = patientForm.querySelector('select[name="gravida"]').value.trim();
+                const para = patientForm.querySelector('select[name="para"]').value.trim();
+                const abortus = patientForm.querySelector('select[name="abortus"]').value.trim();
+                
                 const formData = {
                     patient_name: patientForm.querySelector('input[name="patient_name"]').value.trim(),
                     healthcare_facility: patientForm.querySelector('input[name="healthcare_facility"]').value.trim(),
-                    occupation: patientForm.querySelector('input[name="occupation"]').value.trim(),
                     employment_status: patientForm.querySelector('input[name="employment_status"]').value.trim(),
                     marital_status: patientForm.querySelector('select[name="marital_status"]').value.trim(),
                     province_code: patientForm.querySelector('input[name="province_code"]').value.trim(),
@@ -454,7 +502,7 @@
                     age: patientForm.querySelector('input[name="age"]').value.trim(),
                     address: patientForm.querySelector('textarea[name="address"]').value.trim(),
                     phone: patientForm.querySelector('input[name="phone"]').value.trim(),
-                    gpa: patientForm.querySelector('input[name="gpa"]').value.trim(),
+                    gpa: `${gravida || '0'},${para || '0'},${abortus || '0'}`,
                     notes: patientForm.querySelector('textarea[name="notes"]').value.trim(),
                 };
 
