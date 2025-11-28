@@ -1360,3 +1360,126 @@ tr:hover {
   border-radius: 4px;
   backdrop-filter: saturate(120%) blur(2px);
 }
+
+/* Metrics Grid */
+.metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+  margin-bottom: 30px;
+}
+
+.metric-card {
+  background: linear-gradient(135deg, #106ebe 0%, #0d5a9e 100%);
+  color: white;
+  border-radius: 12px;
+  padding: 20px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  box-shadow: 0 4px 12px rgba(16, 110, 190, 0.15);
+  transition:
+    transform 0.2s,
+    box-shadow 0.2s;
+}
+
+.metric-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(16, 110, 190, 0.25);
+}
+
+.metric-icon {
+  font-size: 32px;
+  line-height: 1;
+  min-width: 40px;
+}
+
+.metric-content {
+  flex: 1;
+}
+
+.metric-number {
+  font-size: 24px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.metric-label {
+  font-size: 13px;
+  opacity: 0.9;
+  margin-top: 4px;
+}
+
+/* Analytics Charts Grid */
+.analytics-charts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+  gap: 24px;
+  margin-top: 20px;
+  margin-bottom: 30px;
+}
+
+.chart-wrapper {
+  background: #fff;
+  border: 1px solid #e9ecef;
+  border-radius: 8px;
+  padding: 20px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.chart-wrapper h3 {
+  margin: 0 0 16px 0;
+  font-size: 16px;
+  color: #333;
+  font-weight: 600;
+}
+
+.chart-wrapper canvas {
+  max-height: 300px;
+  width: 100% !important;
+  height: auto !important;
+}
+
+@media (max-width: 768px) {
+  .metrics-grid {
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+
+  .metric-card {
+    padding: 16px;
+    gap: 12px;
+  }
+
+  .metric-icon {
+    font-size: 28px;
+    min-width: 32px;
+  }
+
+  .metric-number {
+    font-size: 20px;
+  }
+
+  .metric-label {
+    font-size: 12px;
+  }
+
+  .analytics-charts {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  .chart-wrapper {
+    padding: 16px;
+  }
+
+  .chart-wrapper h3 {
+    font-size: 15px;
+    margin-bottom: 12px;
+  }
+
+  .chart-wrapper canvas {
+    max-height: 250px;
+  }
+}
