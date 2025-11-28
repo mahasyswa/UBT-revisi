@@ -31,6 +31,7 @@
           </div>
         </div>
         <div class="modal-footer">
+          <button class="btn-export" id="modalExportAllBtn">Export All</button>
           <button class="btn-export" id="modalExportBtn">Export CSV</button>
           <button class="btn-print" id="modalPrintBtn">Print</button>
           <button class="btn-secondary" id="modalCloseBtn">Close</button>
@@ -1650,14 +1651,14 @@
             // build detail HTML
             const html = [];
             html.push('<div class="info-grid">');
-            html.push(`<div class="info-box"><div class="label">Healthcare Facility</div><div class="value">${d.healthcare_facility || '-'}</div></div>`);
-            html.push(`<div class="info-box"><div class="label">Occupation</div><div class="value">${d.occupation || '-'}</div></div>`);
-            html.push(`<div class="info-box"><div class="label">Employment Status</div><div class="value">${d.employment_status || '-'}</div></div>`);
-            html.push(`<div class="info-box"><div class="label">Marital Status</div><div class="value">${d.marital_status || '-'}</div></div>`);
-            html.push(`<div class="info-box"><div class="label">Province</div><div class="value">${d.province_code || '-'}</div></div>`);
-            html.push(`<div class="info-box"><div class="label">District / City</div><div class="value">${d.district || '-'}</div></div>`);
-            html.push(`<div class="info-box" style="grid-column:1 / -1"><div class="label">Full Address</div><div class="value">${d.address || '-'}</div></div>`);
-            html.push(`<div class="info-box"><div class="label">Service Type</div><div class="value">${d.service_type || '-'}</div></div>`);
+            html.push(`<div class="info-box"><div class="label">🏥 Healthcare Facility</div><div class="value">${d.healthcare_facility || '-'}</div></div>`);
+            html.push(`<div class="info-box"><div class="label">💼 Occupation</div><div class="value">${d.occupation || '-'}</div></div>`);
+            html.push(`<div class="info-box"><div class="label">📋 Employment Status</div><div class="value">${d.employment_status || '-'}</div></div>`);
+            html.push(`<div class="info-box"><div class="label">💍 Marital Status</div><div class="value">${d.marital_status || '-'}</div></div>`);
+            html.push(`<div class="info-box"><div class="label">📍 Province</div><div class="value">${d.province_code || '-'}</div></div>`);
+            html.push(`<div class="info-box"><div class="label">🗺️ District / City</div><div class="value">${d.district || '-'}</div></div>`);
+            html.push(`<div class="info-box" style="grid-column:1 / -1"><div class="label">🏠 Full Address</div><div class="value">${d.address || '-'}</div></div>`);
+            html.push(`<div class="info-box"><div class="label">🩺 Service Type</div><div class="value">${d.service_type || '-'}</div></div>`);
             html.push('</div>');
 
             // GPA section
@@ -1669,8 +1670,8 @@
             html.push(`<div class="gpa-box"><div class="gpa-item"><div class="num">${G}</div><div class="label">G (Gravida)</div></div><div class="gpa-item"><div class="num">${P}</div><div class="label">P (Para)</div></div><div class="gpa-item"><div class="num">${A}</div><div class="label">A (Abortus)</div></div></div>`);
 
             html.push('<div class="info-grid">');
-            html.push(`<div class="info-box"><div class="label">Healthcare Provider</div><div class="value">${d.provider || '-'}</div></div>`);
-            html.push(`<div class="info-box"><div class="label">Created At</div><div class="value">${new Date(d.created_at).toLocaleString('id-ID', { dateStyle: 'short', timeStyle: 'short' })}</div></div>`);
+            html.push(`<div class="info-box"><div class="label">👨‍⚕️ Healthcare Provider</div><div class="value">${d.provider || '-'}</div></div>`);
+            html.push(`<div class="info-box"><div class="label">📅 Created At</div><div class="value">${new Date(d.created_at).toLocaleString('id-ID', { dateStyle: 'short', timeStyle: 'short' })}</div></div>`);
             html.push('</div>');
 
             html.push(`<div style="margin-top:8px;color:#444"><strong>Notes</strong><div style="margin-top:6px;color:#666">${d.notes || '-'}</div></div>`);
@@ -1767,6 +1768,67 @@
         printWindow.document.close();
       }
 
+      // Track current partner ID for Export All feature
+      let currentPartnerId = null;
+
+      // Export all patients for current partner as CSV
+      function exportAllPatientsCSV() {
+        if (!currentPartnerId) {
+          showToast('No partner selected', 'error');
+          return;
+        }
+        fetch(`/api/partner/${currentPartnerId}/patients`)
+          .then(r => r.json())
+          .then(patients => {
+            if (!patients || patients.length === 0) {
+              showToast('No patients found to export', 'warning');
+              return;
+            }
+            const rows = [
+              ['Code','Patient Name','Healthcare Facility','Occupation','Marital Status','GPA','Address','Phone','Age','Provider','Status','Created At','Notes']
+            ];
+            patients.forEach(p => {
+              rows.push([
+                p.code || '',
+                p.patient_name || '',
+                p.healthcare_facility || '',
+                p.occupation || '',
+                p.marital_status || '',
+                p.gpa || '',
+                p.address || '',
+                p.phone || '',
+                p.age || '',
+                p.provider || '',
+                p.status || '',
+                p.created_at || '',
+                p.notes || ''
+              ]);
+            });
+            const csv = rows.map(r => r.map(c => '"' + String(c).replace(/"/g,'""') + '"').join(',')).join('\n');
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `patients-${currentPartnerId}-${new Date().getTime()}.csv`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            showToast(`Exported ${patients.length} patient record(s)`, 'success');
+          })
+          .catch(err => {
+            console.error('Error exporting all patients:', err);
+            showToast('Error exporting patients', 'error');
+          });
+      }
+
+      // Capture original openPatientModal to wrap it
+      const originalOpenPatientModal = window.openPatientModal;
+      window.openPatientModal = function(partnerId) {
+        currentPartnerId = partnerId;
+        return originalOpenPatientModal(partnerId);
+      };
+
       // Attach click handlers for the detail buttons (delegation)
       document.addEventListener('click', function(e) {
         const btn = e.target.closest('.btn-detail');
@@ -1778,6 +1840,7 @@
 
       // Wire modal export/print buttons
       document.getElementById('modalExportBtn').addEventListener('click', exportPatientCSV);
+      document.getElementById('modalExportAllBtn').addEventListener('click', exportAllPatientsCSV);
       document.getElementById('modalPrintBtn').addEventListener('click', printPatientReport);
     </script>
   </body>
