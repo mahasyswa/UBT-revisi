@@ -1143,24 +1143,6 @@
         });
       }
       
-      function showToast(message, type = 'info') {
-        // Create toast element if not exists
-        let toast = document.getElementById('dashboard-toast');
-        if (!toast) {
-          toast = document.createElement('div');
-          toast.id = 'dashboard-toast';
-          toast.className = 'dashboard-toast';
-          document.body.appendChild(toast);
-        }
-        
-        toast.textContent = message;
-        toast.className = `dashboard-toast dashboard-toast-${type} show`;
-        
-        setTimeout(() => {
-          toast.classList.remove('show');
-        }, 3000);
-      }
-
       // Handle period selection change
       document.getElementById('periodSelect').addEventListener('change', function() {
         const customDateRange = document.querySelector('.custom-date-range');
