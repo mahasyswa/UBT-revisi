@@ -768,80 +768,20 @@
         </div>
       </header>
 
-      <section>
-        <h2>Create Protocol</h2>
-        <form method="post" action="/protocols" id="protocolForm">
-          <div class="form-row">
-            <div class="form-group">
-              <label for="province">Province</label>
-              <select name="province" id="provinceSelect" required>
-                <option value="">Select Province</option>
-                <% provinces.forEach(function(p){ %>
-                <option value="<%= p.code %>"><%= p.name %> (<%= p.code %>)</option>
-                <% }) %>
-              </select>
-            </div>
-            <div class="form-group">
-              <label for="partner">Mitra</label>
-              <select name="partner_id" id="partnerSelect" required disabled>
-                <option value="">Select Province First</option>
-              </select>
-            </div>
-          </div>
-          
-          <div class="form-row">
-            <div class="form-group">
-              <label for="quantity">Quantity</label>
-              <input type="number" name="quantity" id="quantityInput" min="1" max="100" value="1" required>
-              <small style="color: #666; font-size: 12px;">Number of QR codes to generate (1-100)</small>
-            </div>
-          </div>
-          
-          <div class="form-group" id="addPartnerSection" style="display: none;">
-            <button type="button" id="addPartnerBtn" class="btn-secondary">
-              + Add New Partner for Selected Province
-            </button>
-          </div>
-          
-          <div id="newPartnerForm" style="display: none;" class="new-partner-form">
-            <h3>Add New Partner</h3>
-            <div class="form-row">
-              <div class="form-group">
-                <label for="partner_name">Partner Name</label>
-                <input type="text" id="partner_name" name="partner_name" placeholder="Partner name">
-              </div>
-              <div class="form-group">
-                <label for="partner_type">Partner Type</label>
-                <select id="partner_type" name="partner_type">
-                  <option value="">Select Type</option>
-                  <option value="klinik">Klinik</option>
-                  <option value="puskesmas">Puskesmas</option>
-                  <option value="rumah_sakit">Rumah Sakit</option>
-                </select>
-              </div>
-            </div>
-            <div class="form-row">
-              <div class="form-group">
-                <label for="partner_code">Partner Code</label>
-                <input type="text" id="partner_code" name="partner_code" placeholder="e.g., KLN001" maxlength="10">
-              </div>
-              <div class="form-group">
-                <label for="partner_phone">Phone (Optional)</label>
-                <input type="tel" id="partner_phone" name="partner_phone" placeholder="Phone number">
-              </div>
-            </div>
-            <div class="form-group">
-              <label for="partner_address">Address (Optional)</label>
-              <textarea id="partner_address" name="partner_address" rows="2" placeholder="Address"></textarea>
-            </div>
-            <div class="form-actions">
-              <button type="button" id="cancelPartnerBtn" class="btn-secondary">Cancel</button>
-              <button type="button" id="savePartnerBtn" class="btn-primary">Save & Use Partner</button>
-            </div>
-          </div>
-          
-          <button type="submit" id="createProtocolBtn" disabled>Create Protocol & Generate QR Code</button>
-        </form>
+      <section style="margin-bottom: 30px;">
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px;">
+          <h2 style="margin: 0;">Quick Actions</h2>
+        </div>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px;">
+          <a href="/create-protocol" style="display: flex; align-items: center; justify-content: center; padding: 24px; background: linear-gradient(135deg, #ff6fa3 0%, #7b1fa2 100%); color: white; text-decoration: none; border-radius: 12px; font-weight: 600; font-size: 16px; transition: all 0.2s; box-shadow: 0 4px 12px rgba(224, 0, 122, 0.3);" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 16px rgba(224, 0, 122, 0.4)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 12px rgba(224, 0, 122, 0.3)'">
+            <span style="font-size: 24px; margin-right: 12px;">📋</span>
+            Create Protocol
+          </a>
+          <a href="/scanner" style="display: flex; align-items: center; justify-content: center; padding: 24px; background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); color: white; text-decoration: none; border-radius: 12px; font-weight: 600; font-size: 16px; transition: all 0.2s; box-shadow: 0 4px 12px rgba(79, 172, 254, 0.3);" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 16px rgba(79, 172, 254, 0.4)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 12px rgba(79, 172, 254, 0.3)'">
+            <span style="font-size: 24px; margin-right: 12px;">📱</span>
+            Scanner
+          </a>
+        </div>
       </section>
 
       <section>
@@ -1220,158 +1160,6 @@
         } else {
           customDateRange.style.display = 'none';
         }
-      });
-
-      // Handle province selection for partner dropdown
-      document.getElementById('provinceSelect').addEventListener('change', function() {
-        const provinceCode = this.value;
-        const partnerSelect = document.getElementById('partnerSelect');
-        const addPartnerSection = document.getElementById('addPartnerSection');
-        const createBtn = document.getElementById('createProtocolBtn');
-        
-        if (!provinceCode) {
-          partnerSelect.disabled = true;
-          partnerSelect.innerHTML = '<option value="">Select Province First</option>';
-          addPartnerSection.style.display = 'none';
-          createBtn.disabled = true;
-          return;
-        }
-        
-        // Fetch partners for selected province
-        fetch(`/api/partner/${provinceCode}`)
-          .then(response => response.json())
-          .then(partners => {
-            partnerSelect.innerHTML = '';
-
-            if (!partners || partners.length === 0) {
-              // No partners yet for this province: show new partner form
-              partnerSelect.innerHTML = '<option value="">-- Tidak Ada Mitra, Buat yang Baru --</option>';
-              partnerSelect.disabled = true;
-              addPartnerSection.style.display = 'block';
-              // Show inline new partner form directly
-              const newPartnerForm = document.getElementById('newPartnerForm');
-              if (newPartnerForm) {
-                newPartnerForm.style.display = 'block';
-              }
-              const addBtn = document.getElementById('addPartnerBtn');
-              if (addBtn) addBtn.style.display = 'none';
-              createBtn.disabled = true;
-              return;
-            }
-
-            partnerSelect.innerHTML = '<option value="">Select Partner</option>';
-            partners.forEach(partner => {
-              const option = document.createElement('option');
-              option.value = partner.id;
-              option.textContent = `${partner.name} (${partner.code}) - ${partner.type.replace('_', ' ').toUpperCase()}`;
-              partnerSelect.appendChild(option);
-            });
-
-            partnerSelect.disabled = false;
-            addPartnerSection.style.display = 'block';
-            // Ensure new partner form is hidden when partners exist
-            const newPartnerForm = document.getElementById('newPartnerForm');
-            if (newPartnerForm) newPartnerForm.style.display = 'none';
-            const addBtn = document.getElementById('addPartnerBtn');
-            if (addBtn) addBtn.style.display = 'inline-block';
-          })
-          .catch(error => {
-            console.error('Error fetching partners:', error);
-            partnerSelect.innerHTML = '<option value="">Error loading partners</option>';
-            addPartnerSection.style.display = 'block';
-          });
-      });
-      
-      // Handle partner selection
-      document.getElementById('partnerSelect').addEventListener('change', function() {
-        const createBtn = document.getElementById('createProtocolBtn');
-        createBtn.disabled = !this.value;
-      });
-      
-      // Handle add new partner
-      document.getElementById('addPartnerBtn').addEventListener('click', function() {
-        const newPartnerForm = document.getElementById('newPartnerForm');
-        const provinceCode = document.getElementById('provinceSelect').value;
-        
-        // Auto-fill province code in hidden field
-        newPartnerForm.style.display = 'block';
-        this.style.display = 'none';
-      });
-      
-      // Handle cancel new partner
-      document.getElementById('cancelPartnerBtn').addEventListener('click', function() {
-        const newPartnerForm = document.getElementById('newPartnerForm');
-        const addPartnerBtn = document.getElementById('addPartnerBtn');
-        
-        newPartnerForm.style.display = 'none';
-        addPartnerBtn.style.display = 'block';
-        
-        // Clear form
-        document.getElementById('partner_name').value = '';
-        document.getElementById('partner_type').value = '';
-        document.getElementById('partner_code').value = '';
-        document.getElementById('partner_phone').value = '';
-        document.getElementById('partner_address').value = '';
-      });
-      
-      // Handle save new partner
-      document.getElementById('savePartnerBtn').addEventListener('click', function() {
-        const provinceCode = document.getElementById('provinceSelect').value;
-        const partnerData = {
-          name: document.getElementById('partner_name').value,
-          type: document.getElementById('partner_type').value,
-          code: document.getElementById('partner_code').value,
-          province_code: provinceCode,
-          phone: document.getElementById('partner_phone').value,
-          address: document.getElementById('partner_address').value
-        };
-        
-        // Validate required fields
-        if (!partnerData.name || !partnerData.type || !partnerData.code) {
-          alert('Please fill in all required fields (Name, Type, Code)');
-          return;
-        }
-        
-        // Send to server
-        fetch('/api/partner', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(partnerData)
-        })
-        .then(response => {
-          if (response.ok) {
-            return response.json();
-          }
-          return response.json().then(err => Promise.reject(err));
-        })
-        .then(data => {
-          // Add new partner to dropdown
-          const partnerSelect = document.getElementById('partnerSelect');
-          const option = document.createElement('option');
-          option.value = data.partner.id;
-          option.textContent = `${data.partner.name} (${data.partner.code}) - ${data.partner.type.replace('_', ' ').toUpperCase()}`;
-          option.selected = true;
-          partnerSelect.appendChild(option);
-          
-          // Enable create button
-          document.getElementById('createProtocolBtn').disabled = false;
-          
-          // Hide form
-          document.getElementById('cancelPartnerBtn').click();
-          
-          // Reload page to refresh data
-          setTimeout(() => {
-            window.location.reload();
-          }, 1500);
-          
-          showToast('Partner created successfully!', 'success');
-        })
-        .catch(error => {
-          console.error('Error creating partner:', error);
-          showToast(error.error || 'Error creating partner. Please try again.', 'error');
-        });
       });
 
       // Initialize Analytics Charts
