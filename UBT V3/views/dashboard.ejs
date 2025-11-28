@@ -1586,6 +1586,9 @@
       const modalCloseBtn = document.getElementById('modalCloseBtn');
 
       function openPatientModal(partnerId) {
+        // Track current partner ID for Export All feature
+        currentPartnerId = partnerId;
+        
         // show backdrop
         patientModalBackdrop.style.display = 'flex';
         patientListEl.innerHTML = '<div style="padding:8px;color:#6c757d;font-size:13px;">Loading...</div>';
@@ -1821,13 +1824,6 @@
             showToast('Error exporting patients', 'error');
           });
       }
-
-      // Capture original openPatientModal to wrap it
-      const originalOpenPatientModal = window.openPatientModal;
-      window.openPatientModal = function(partnerId) {
-        currentPartnerId = partnerId;
-        return originalOpenPatientModal(partnerId);
-      };
 
       // Attach click handlers for the detail buttons (delegation)
       document.addEventListener('click', function(e) {
