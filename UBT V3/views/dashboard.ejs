@@ -433,6 +433,9 @@
         border-radius: 12px;
         padding: 20px;
         box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        min-height: 300px;
+        display: flex;
+        flex-direction: column;
       }
       
       .chart-wrapper h3 {
@@ -440,6 +443,12 @@
         margin-bottom: 15px;
         color: #333;
         font-size: 16px;
+        flex-shrink: 0;
+      }
+      
+      .chart-wrapper canvas {
+        flex: 1;
+        max-height: 300px;
       }
       
       @media (max-width: 768px) {
@@ -916,22 +925,22 @@
         <div class="analytics-charts">
           <div class="chart-wrapper">
             <h3>📈 Daily Trends (Last 30 Days)</h3>
-            <canvas id="dailyTrendsChart" width="400" height="200"></canvas>
+            <canvas id="dailyTrendsChart"></canvas>
           </div>
           
           <div class="chart-wrapper">
             <h3>🕒 Hourly Distribution (Last 7 Days)</h3>
-            <canvas id="hourlyChart" width="400" height="200"></canvas>
+            <canvas id="hourlyChart"></canvas>
           </div>
           
           <div class="chart-wrapper">
             <h3>📊 Status Distribution</h3>
-            <canvas id="statusPieChart" width="400" height="200"></canvas>
+            <canvas id="statusPieChart"></canvas>
           </div>
           
           <div class="chart-wrapper">
             <h3>🏛️ Province Performance</h3>
-            <canvas id="provinceChart" width="400" height="200"></canvas>
+            <canvas id="provinceChart"></canvas>
           </div>
         </div>
       </section>
@@ -1168,147 +1177,161 @@
       });
 
       function initializeCharts() {
-        // Daily Trends Chart
-        const dailyTrendsCtx = document.getElementById('dailyTrendsChart').getContext('2d');
-        const dailyTrendsData = <%- JSON.stringify(analytics.dailyTrends) %>;
-        
-        new Chart(dailyTrendsCtx, {
-          type: 'line',
-          data: {
-            labels: dailyTrendsData.map(d => new Date(d.date).toLocaleDateString('id-ID')),
-            datasets: [{
-              label: 'Created',
-              data: dailyTrendsData.map(d => d.created),
-              borderColor: '#106EBE',
-              backgroundColor: 'rgba(16, 110, 190, 0.1)',
-              tension: 0.4
-            }, {
-              label: 'Delivered',
-              data: dailyTrendsData.map(d => d.delivered),
-              borderColor: '#48bb78',
-              backgroundColor: 'rgba(72, 187, 120, 0.1)',
-              tension: 0.4
-            }, {
-              label: 'Used',
-              data: dailyTrendsData.map(d => d.terpakai),
-              borderColor: '#ed8936',
-              backgroundColor: 'rgba(237, 137, 54, 0.1)',
-              tension: 0.4
-            }]
-          },
-          options: {
-            responsive: true,
-            plugins: {
-              legend: {
-                position: 'top',
+        try {
+          // Daily Trends Chart
+          const dailyTrendsCtx = document.getElementById('dailyTrendsChart');
+          if (dailyTrendsCtx) {
+            const dailyTrendsData = <%- JSON.stringify(analytics.dailyTrends) %>;
+            new Chart(dailyTrendsCtx.getContext('2d'), {
+              type: 'line',
+              data: {
+                labels: dailyTrendsData.map(d => new Date(d.date).toLocaleDateString('id-ID')),
+                datasets: [{
+                  label: 'Created',
+                  data: dailyTrendsData.map(d => d.created),
+                  borderColor: '#106EBE',
+                  backgroundColor: 'rgba(16, 110, 190, 0.1)',
+                  tension: 0.4
+                }, {
+                  label: 'Delivered',
+                  data: dailyTrendsData.map(d => d.delivered),
+                  borderColor: '#48bb78',
+                  backgroundColor: 'rgba(72, 187, 120, 0.1)',
+                  tension: 0.4
+                }, {
+                  label: 'Used',
+                  data: dailyTrendsData.map(d => d.terpakai),
+                  borderColor: '#ed8936',
+                  backgroundColor: 'rgba(237, 137, 54, 0.1)',
+                  tension: 0.4
+                }]
+              },
+              options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                  legend: {
+                    position: 'top',
+                  }
+                },
+                scales: {
+                  y: {
+                    beginAtZero: true
+                  }
+                }
               }
-            },
-            scales: {
-              y: {
-                beginAtZero: true
-              }
-            }
+            });
           }
-        });
 
-        // Hourly Distribution Chart
-        const hourlyCtx = document.getElementById('hourlyChart').getContext('2d');
-        const hourlyData = <%- JSON.stringify(analytics.hourlyDistribution) %>;
-        
-        new Chart(hourlyCtx, {
-          type: 'bar',
-          data: {
-            labels: Array.from({length: 24}, (_, i) => `${i}:00`),
-            datasets: [{
-              label: 'Protocols Created',
-              data: Array.from({length: 24}, (_, i) => {
-                const hour = hourlyData.find(h => parseInt(h.hour) === i);
-                return hour ? hour.count : 0;
-              }),
-              backgroundColor: 'rgba(102, 126, 234, 0.6)',
-              borderColor: '#106EBE',
-              borderWidth: 1
-            }]
-          },
-          options: {
-            responsive: true,
-            plugins: {
-              legend: {
-                display: false
+          // Hourly Distribution Chart
+          const hourlyCtx = document.getElementById('hourlyChart');
+          if (hourlyCtx) {
+            const hourlyData = <%- JSON.stringify(analytics.hourlyDistribution) %>;
+            new Chart(hourlyCtx.getContext('2d'), {
+              type: 'bar',
+              data: {
+                labels: Array.from({length: 24}, (_, i) => `${i}:00`),
+                datasets: [{
+                  label: 'Protocols Created',
+                  data: Array.from({length: 24}, (_, i) => {
+                    const hour = hourlyData.find(h => parseInt(h.hour) === i);
+                    return hour ? hour.count : 0;
+                  }),
+                  backgroundColor: 'rgba(102, 126, 234, 0.6)',
+                  borderColor: '#106EBE',
+                  borderWidth: 1
+                }]
+              },
+              options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                  legend: {
+                    display: false
+                  }
+                },
+                scales: {
+                  y: {
+                    beginAtZero: true
+                  }
+                }
               }
-            },
-            scales: {
-              y: {
-                beginAtZero: true
-              }
-            }
+            });
           }
-        });
 
-        // Status Pie Chart
-        const statusPieCtx = document.getElementById('statusPieChart').getContext('2d');
-        
-        new Chart(statusPieCtx, {
-          type: 'doughnut',
-          data: {
-            labels: ['Created', 'Delivered', 'Used'],
-            datasets: [{
-              data: [<%= stats.created %>, <%= stats.delivered %>, <%= stats.terpakai %>],
-              backgroundColor: [
-                '#106EBE',
-                '#48bb78', 
-                '#ed8936'
-              ],
-              borderWidth: 2,
-              borderColor: '#fff'
-            }]
-          },
-          options: {
-            responsive: true,
-            plugins: {
-              legend: {
-                position: 'bottom'
+          // Status Pie Chart
+          const statusPieCtx = document.getElementById('statusPieChart');
+          if (statusPieCtx) {
+            new Chart(statusPieCtx.getContext('2d'), {
+              type: 'doughnut',
+              data: {
+                labels: ['Created', 'Delivered', 'Used'],
+                datasets: [{
+                  data: [<%= stats.created %>, <%= stats.delivered %>, <%= stats.terpakai %>],
+                  backgroundColor: [
+                    '#106EBE',
+                    '#48bb78', 
+                    '#ed8936'
+                  ],
+                  borderWidth: 2,
+                  borderColor: '#fff'
+                }]
+              },
+              options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                  legend: {
+                    position: 'bottom'
+                  }
+                }
               }
-            }
+            });
           }
-        });
 
-        // Province Performance Chart
-        const provinceCtx = document.getElementById('provinceChart').getContext('2d');
-        const provinceData = <%- JSON.stringify(analytics.provincePerformance || []) %>;
-
-        new Chart(provinceCtx, {
-          type: 'bar',
-          data: {
-            labels: provinceData.map(p => p.province_code),
-            datasets: [{
-              label: 'Protocol Count',
-              data: provinceData.map(p => p.count),
-              backgroundColor: [
-                '#106EBE',
-                '#0d4f88',
-                '#0FFCBE',
-                '#48bb78',
-                '#ed8936'
-              ],
-              borderWidth: 1
-            }]
-          },
-          options: {
-            responsive: true,
-            indexAxis: 'y', // horizontal bars in Chart.js v3+
-            plugins: {
-              legend: {
-                display: false
+          // Province Performance Chart
+          const provinceCtx = document.getElementById('provinceChart');
+          if (provinceCtx) {
+            const provinceData = <%- JSON.stringify(analytics.provincePerformance) %>;
+            const topProvinces = provinceData.slice(0, 8);
+            new Chart(provinceCtx.getContext('2d'), {
+              type: 'bar',
+              data: {
+                labels: topProvinces.map(p => p.province_code || 'Unknown'),
+                datasets: [{
+                  label: 'Total Protocols',
+                  data: topProvinces.map(p => p.count),
+                  backgroundColor: 'rgba(102, 126, 234, 0.6)',
+                  borderColor: '#106EBE',
+                  borderWidth: 1
+                }, {
+                  label: 'Used',
+                  data: topProvinces.map(p => p.terpakai),
+                  backgroundColor: 'rgba(237, 137, 54, 0.6)',
+                  borderColor: '#ed8936',
+                  borderWidth: 1
+                }]
+              },
+              options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                indexAxis: 'y',
+                plugins: {
+                  legend: {
+                    position: 'bottom'
+                  }
+                },
+                scales: {
+                  x: {
+                    beginAtZero: true
+                  }
+                }
               }
-            },
-            scales: {
-              x: {
-                beginAtZero: true
-              }
-            }
+            });
           }
-        });
+        } catch (err) {
+          console.error('Chart initialization error:', err);
+        }
       }
 
       // Mobile Menu Toggle
